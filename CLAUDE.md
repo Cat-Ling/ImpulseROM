@@ -119,9 +119,9 @@ SHA-256), which makes `ROM_IS_OFFICIAL` true. **The private key is gitignored
 and exists only on this machine — back it up offline.** Without it no future
 build can sign an in-place update for devices already running Impulse.
 
-Note the flashable ZIP itself is still unsigned; `PRIVATE_KEY_PATH` and
-`PUBLIC_KEY_PATH` in `build_flashable_zip.sh` are computed but never used.
-Distribute a SHA-256 (and ideally a detached GPG signature) alongside releases.
+Note the flashable ZIP itself is still unsigned (the `-sign.zip` suffix is
+historical). The build writes `<zip>.sha256` next to it; distribute that (and
+ideally a detached GPG signature) alongside releases.
 
 ## Read Next
 

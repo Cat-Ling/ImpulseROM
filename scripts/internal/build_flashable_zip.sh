@@ -40,18 +40,6 @@ while [ -f "$OUT_DIR/$FILE_NAME" ]; do
     FILE_NAME="ImpulseROM_${ROM_VERSION}_${ROM_COMMIT}_$(date +%Y%m%d)_${INCREMENTAL}_${TARGET_CODENAME}${ZIP_FILE_SUFFIX}"
 done
 
-PRIVATE_KEY_PATH="$SRC_DIR/security/"
-PUBLIC_KEY_PATH="$SRC_DIR/security/"
-if $ROM_IS_OFFICIAL; then
-    PRIVATE_KEY_PATH+="impulse"
-    PUBLIC_KEY_PATH+="impulse"
-else
-    PRIVATE_KEY_PATH+="aosp"
-    PUBLIC_KEY_PATH+="aosp"
-fi
-PRIVATE_KEY_PATH+="_platform.pk8"
-PUBLIC_KEY_PATH+="_platform.x509.pem"
-
 trap 'rm -rf "$TMP_DIR"' EXIT INT
 
 # https://android.googlesource.com/platform/build/+/refs/tags/android-15.0.0_r1/tools/releasetools/build_super_image.py#72
@@ -870,6 +858,7 @@ GENERATE_OTA_METADATA
 LOG "- Creating zip"
 rm -f "$OUT_DIR/rom.zip" "$OUT_DIR/$FILE_NAME"
 (cd "$TMP_DIR" && zip -rq "$OUT_DIR/$FILE_NAME" ./*) || exit 1
+(cd "$OUT_DIR" && sha256sum "$FILE_NAME" > "$FILE_NAME.sha256") || exit 1
 
 LOG "- Validating updater-script package references"
 VALIDATE_ZIP_PACKAGE_REFERENCES

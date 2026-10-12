@@ -40,7 +40,15 @@ TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" 
 # separate process. Keep the resolved firmware directory names available to
 # device modules that must restore exact files from either extracted tree.
 export SOURCE_FIRMWARE_PATH TARGET_FIRMWARE_PATH
-export ENABLE_SCOPED_PLATFORM_APK_REBUILDS="${ENABLE_SCOPED_PLATFORM_APK_REBUILDS:-false}"
+if [[ "${TARGET_SINGLE_SYSTEM_IMAGE:-}" == "essi85" ]]; then
+    # Same defaults as scripts/build_in_container.sh, the profile the d2s One UI
+    # 8.5 audits were run against. Without them a native build re-signs every
+    # Samsung APK and drops the scoped d2s fixes.
+    export KEEP_SIGNED_APKS_STOCK="${KEEP_SIGNED_APKS_STOCK:-true}"
+    export ENABLE_SCOPED_PLATFORM_APK_REBUILDS="${ENABLE_SCOPED_PLATFORM_APK_REBUILDS:-true}"
+else
+    export ENABLE_SCOPED_PLATFORM_APK_REBUILDS="${ENABLE_SCOPED_PLATFORM_APK_REBUILDS:-false}"
+fi
 
 GET_REQUIRED_FIRMWARES()
 {
@@ -132,6 +140,13 @@ GET_WORK_DIR_HASH()
                 \( -type d -name __pycache__ -prune \) -o \
                 \( -type l -print0 \) | sort -z
         )
+
+        # Build switches change the output without changing any hashed file.
+        printf 'flags keep=%s scoped=%s drift=%s ksu=%s\n' \
+            "${KEEP_SIGNED_APKS_STOCK:-}" \
+            "${ENABLE_SCOPED_PLATFORM_APK_REBUILDS:-}" \
+            "${PATCH_DRIFT_POLICY:-fail}" \
+            "${INCLUDE_KERNELSU_MANAGER:-false}"
 
         # A commit can change build identity without changing file contents.
         printf 'git-head %s\n' "$(git rev-parse HEAD)"
