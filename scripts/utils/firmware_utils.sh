@@ -116,8 +116,16 @@ GET_LATEST_FIRMWARE()
     _CHECK_NON_EMPTY_PARAM "MODEL" "$1" || return 1
     _CHECK_NON_EMPTY_PARAM "CSC" "$2" || return 1
 
-    curl -s --retry 5 --retry-delay 5 "https://fota-cloud-dn.ospserver.net/firmware/$2/$1/version.xml" \
-        | perl -nE 'say $1 if /<latest[^>]*>(.*?)<\/latest>/'
+    local LATEST
+    LATEST="$(curl -s --retry 5 --retry-delay 5 "https://fota-cloud-dn.ospserver.net/firmware/$2/$1/version.xml" \
+        | perl -nE 'say $1 if /<latest[^>]*>(.*?)<\/latest>/')"
+
+    # The CDN answers 403 to some networks; ask FUS through the tool the download uses.
+    if [ ! "$LATEST" ] && [ -x "$TOOLS_DIR/bin/samloader-rs" ]; then
+        LATEST="$("$TOOLS_DIR/bin/samloader-rs" check-update -m "$1" -r "$2" 2> /dev/null | head -n 1)"
+    fi
+
+    printf '%s\n' "$LATEST"
 }
 
 # PARSE_FIRMWARE_STRING <string>
