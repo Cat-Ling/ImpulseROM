@@ -116,6 +116,13 @@ GET_LATEST_FIRMWARE()
     _CHECK_NON_EMPTY_PARAM "MODEL" "$1" || return 1
     _CHECK_NON_EMPTY_PARAM "CSC" "$2" || return 1
 
+    # Reproducible builds: FIRMWARE_PIN_<MODEL>_<CSC> (dashes as underscores) overrides the lookup.
+    local PIN_VAR="FIRMWARE_PIN_${1//-/_}_$2"
+    if [ -n "${!PIN_VAR:-}" ]; then
+        printf '%s\n' "${!PIN_VAR}"
+        return 0
+    fi
+
     local LATEST
     LATEST="$(curl -s --retry 5 --retry-delay 5 "https://fota-cloud-dn.ospserver.net/firmware/$2/$1/version.xml" \
         | perl -nE 'say $1 if /<latest[^>]*>(.*?)<\/latest>/')"
