@@ -2,85 +2,25 @@ From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: ImpulseROM <noreply@localhost>
 Subject: [PATCH] Disable DualAP support
 
-isWifiApEnabledWithDualBand() always returns false. Rebased onto One UI 8.5 DZF3.
+isWifiApEnabledWithDualBand() always returns false; the old body stays as dead code so the
+DEX inventory is unchanged. Rebased onto One UI 8.5 DZF3.
 ---
  smali/com/samsung/android/server/wifi/ap/SemSoftApConfiguration.smali | changed
  1 file changed
 
 --- a/smali/com/samsung/android/server/wifi/ap/SemSoftApConfiguration.smali
 +++ b/smali/com/samsung/android/server/wifi/ap/SemSoftApConfiguration.smali
-@@ -2647,66 +2647,11 @@
- .end method
- 
+@@ -2649,6 +2649,10 @@
  .method public isWifiApEnabledWithDualBand()Z
--    .locals 3
--
--    iget-object p0, p0, Lcom/samsung/android/server/wifi/ap/SemSoftApConfiguration;->mWifiApServiceImpl:Lcom/samsung/android/server/wifi/ap/SemWifiApServiceImpl;
--
--    invoke-virtual {p0}, Lcom/samsung/android/server/wifi/ap/SemWifiApServiceImpl;->getSoftApConfiguration()Landroid/net/wifi/SoftApConfiguration;
--
--    move-result-object p0
--
--    const-string v0, "SemSoftApConfiguration"
--
--    const/4 v1, 0x0
--
--    if-eqz p0, :cond_0
--
--    invoke-virtual {p0}, Landroid/net/wifi/SoftApConfiguration;->getChannels()Landroid/util/SparseIntArray;
--
--    move-result-object p0
--
--    invoke-virtual {p0}, Landroid/util/SparseIntArray;->size()I
--
--    move-result p0
--
--    const/4 v2, 0x1
--
--    if-le p0, v2, :cond_1
--
--    invoke-static {}, Lcom/samsung/android/server/wifi/SemWifiInjector;->getInstance()Lcom/samsung/android/server/wifi/SemWifiInjector;
--
--    move-result-object p0
--
--    invoke-virtual {p0}, Lcom/samsung/android/server/wifi/SemWifiInjector;->getSoftApManager()Lcom/samsung/android/server/wifi/ap/SemSoftApManager;
--
--    move-result-object p0
--
--    invoke-virtual {p0}, Lcom/samsung/android/server/wifi/ap/SemSoftApManager;->checkDualBandHostapd()Z
--
--    move-result p0
--
--    if-eqz p0, :cond_1
--
--    move v1, v2
--
--    goto :goto_0
--
--    :cond_0
--    const-string p0, "mSoftAp is null"
--
--    invoke-static {v0, p0}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
--
--    :cond_1
--    :goto_0
--    const-string p0, "isWifiApEnabledWithDualBand API:"
--
--    invoke-static {p0, v1}, Lcom/samsung/android/server/wifi/SemCellularStateManager$SemTelephonyCallback$$ExternalSyntheticOutline0;->m(Ljava/lang/String;Z)Ljava/lang/String;
--
--    move-result-object p0
--
--    invoke-static {v0, p0}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
--
--    return v1
-+    .locals 1
-+
+     .locals 3
+ 
 +    const/4 v0, 0x0
 +
 +    return v0
- .end method
++
+     iget-object p0, p0, Lcom/samsung/android/server/wifi/ap/SemSoftApConfiguration;->mWifiApServiceImpl:Lcom/samsung/android/server/wifi/ap/SemWifiApServiceImpl;
  
- .method public isWifiApGuestModeEnabled()Z
+     invoke-virtual {p0}, Lcom/samsung/android/server/wifi/ap/SemWifiApServiceImpl;->getSoftApConfiguration()Landroid/net/wifi/SoftApConfiguration;
 -- 
 2.43.0
 

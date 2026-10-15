@@ -3,6 +3,7 @@ From: ImpulseROM <noreply@localhost>
 Subject: [PATCH] Enable gestures by default
 
 NavigationBarSettingsUtil.isGestureDefault() returns true (stock: China models only).
+The old body stays as dead code so the DEX inventory is unchanged.
 Rebased onto One UI 8.5 DZF3.
 ---
  smali_classes5/com/samsung/android/settings/navigationbar/NavigationBarSettingsUtil.smali | changed
@@ -10,40 +11,17 @@ Rebased onto One UI 8.5 DZF3.
 
 --- a/smali_classes5/com/samsung/android/settings/navigationbar/NavigationBarSettingsUtil.smali
 +++ b/smali_classes5/com/samsung/android/settings/navigationbar/NavigationBarSettingsUtil.smali
-@@ -119,32 +119,11 @@
- .end method
- 
+@@ -121,6 +121,10 @@
  .method public static isGestureDefault()Z
--    .locals 3
--
--    const-string/jumbo v0, "ro.product.first_api_level"
--
--    const/4 v1, 0x0
--
--    invoke-static {v0, v1}, Landroid/os/SystemProperties;->getInt(Ljava/lang/String;I)I
--
--    move-result v0
--
--    invoke-static {}, Lcom/samsung/android/settings/Rune;->isChinaModel()Z
--
--    move-result v2
--
--    if-eqz v2, :cond_0
--
--    const/16 v2, 0x23
--
--    if-lt v0, v2, :cond_0
-+    .locals 1
+     .locals 3
  
-     const/4 v0, 0x1
++    const/4 v0, 0x1
++
++    return v0
++
+     const-string/jumbo v0, "ro.product.first_api_level"
  
-     return v0
--
--    :cond_0
--    return v1
- .end method
- 
- .method public static isGestureHintOn(Landroid/content/Context;)Z
+     const/4 v1, 0x0
 -- 
 2.43.0
 
