@@ -1,22 +1,28 @@
-From ce8ae686d4ce4540dd425fb9c1cc7747a16787db Mon Sep 17 00:00:00 2001
-From: Salvo Giangreco <giangrecosalvo9@gmail.com>
-Date: Sat, 21 Jun 2025 19:57:41 +0200
-Subject: [PATCH] Disable-SAK-in-DarManagerService
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] Disable SAK in DarManagerService
 
-Signed-off-by: Ocin4ever <85343782+Ocin4ever@users.noreply.github.com>
+checkDeviceIntegrity(), isDeviceRootKeyInstalled() and isKnoxKeyInstallable() report success,
+so Knox DAR does not reject a ROM that is not signed with Samsung's attestation keys.
+Rebased onto One UI 8.5 DZF3. The sibling 'Bypass ICD verification' services.jar patch is
+retired: AttestParameterSpec in DZF3 has no constructor left to patch (the live class is
+covered by the samsungkeystoreutils.jar patch, which still applies).
 ---
- .../server/knox/dar/DarManagerService.smali   | 491 +-----------------
- 1 file changed, 13 insertions(+), 478 deletions(-)
+ smali/com/android/server/knox/dar/DarManagerService.smali | changed
+ 1 file changed
 
-diff --git a/smali/com/android/server/knox/dar/DarManagerService.smali b/smali/com/android/server/knox/dar/DarManagerService.smali
-index aa017cb919..f89bd80cb7 100644
 --- a/smali/com/android/server/knox/dar/DarManagerService.smali
 +++ b/smali/com/android/server/knox/dar/DarManagerService.smali
-@@ -456,59 +456,11 @@
+@@ -570,66 +570,9 @@
  .end method
  
  .method public final checkDeviceIntegrity([Ljava/security/cert/Certificate;)Z
 -    .locals 3
++    .locals 1
+ 
+     const/4 v0, 0x1
+-
+-    return v0
 -
 -    const/4 v0, 0x0
 -
@@ -45,6 +51,11 @@ index aa017cb919..f89bd80cb7 100644
 -
 -    return v1
 -
+-    :catch_0
+-    move-exception p0
+-
+-    goto :goto_0
+-
 -    :cond_0
 -    invoke-virtual {p0}, Lcom/android/server/knox/dar/DarManagerService;->isEmTokenAllowed()Z
 -
@@ -62,26 +73,24 @@ index aa017cb919..f89bd80cb7 100644
 -
 -    return v1
 -
--    :catch_0
--    move-exception p0
--
--    invoke-virtual {p0}, Ljava/security/cert/CertificateParsingException;->printStackTrace()V
--
 -    :cond_1
 -    return v0
-+    .locals 0
-+ 
-+    const/4 p0, 0x1
-+ 
-+    return p0
- .end method
+-
+-    :goto_0
+-    invoke-virtual {p0}, Ljava/security/cert/CertificateParsingException;->printStackTrace()V
  
- .method public final checkSystemPermission()V
-@@ -1834,259 +1786,11 @@
+     return v0
+ .end method
+@@ -1724,260 +1667,11 @@
  .end method
  
  .method public final isDeviceRootKeyInstalled()Z
 -    .locals 10
++    .locals 1
+ 
+     const/4 v0, 0x1
+ 
+     return v0
 -
 -    const-string/jumbo v0, "ro.hardware.virtual_device"
 -
@@ -101,7 +110,7 @@ index aa017cb919..f89bd80cb7 100644
 -
 -    if-eqz v0, :cond_0
 -
--    const-string p0, "Will be Failed in device integrity check. But, running on VirtualDevice. Continue .. "
+-    const-string/jumbo p0, "Will be Failed in device integrity check. But, running on VirtualDevice. Continue .. "
 -
 -    invoke-static {v2, p0}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
 -
@@ -286,12 +295,12 @@ index aa017cb919..f89bd80cb7 100644
 -    :catchall_1
 -    move-exception v0
 -
--    goto :goto_9
+-    goto :goto_8
 -
 -    :catch_1
 -    move-exception v0
 -
--    goto :goto_7
+-    goto :goto_6
 -
 -    :cond_5
 -    invoke-virtual {v0, v1}, Lcom/samsung/android/service/DeviceRootKeyService/DeviceRootKeyServiceManager;->isExistDeviceRootKey(I)Z
@@ -304,29 +313,26 @@ index aa017cb919..f89bd80cb7 100644
 -    :goto_5
 -    iget-object p0, p0, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
 -
--    :goto_6
 -    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 -
 -    invoke-static {v4, v5}, Landroid/os/Binder;->restoreCallingIdentity(J)V
 -
--    goto :goto_8
+-    goto :goto_7
 -
--    :goto_7
+-    :goto_6
 -    :try_start_3
 -    invoke-virtual {v0}, Ljava/lang/Exception;->printStackTrace()V
 -    :try_end_3
 -    .catchall {:try_start_3 .. :try_end_3} :catchall_1
 -
--    iget-object p0, p0, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
+-    goto :goto_5
 -
--    goto :goto_6
--
--    :goto_8
+-    :goto_7
 -    invoke-static {v3}, Lcom/android/server/knox/dar/SecureUtil;->record(Z)V
 -
 -    return v3
 -
--    :goto_9
+-    :goto_8
 -    iget-object p0, p0, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
 -
 -    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
@@ -334,168 +340,185 @@ index aa017cb919..f89bd80cb7 100644
 -    invoke-static {v4, v5}, Landroid/os/Binder;->restoreCallingIdentity(J)V
 -
 -    throw v0
-+    .locals 0
-+ 
-+    const/4 p0, 0x1
-+ 
-+    return p0
  .end method
  
  .method public final isDualDarDoSupported()Z
-@@ -2231,180 +1935,11 @@
+@@ -2117,200 +1811,11 @@
  .end method
  
  .method public final isKnoxKeyInstallable()Z
--    .locals 15
+-    .locals 17
 -
--    const-string v0, "KnoxTestKey"
+-    move-object/from16 v1, p0
 -
--    const-string/jumbo v1, "ro.hardware.virtual_device"
+-    const-string v0, "EC"
 -
--    invoke-static {v1}, Landroid/os/SystemProperties;->get(Ljava/lang/String;)Ljava/lang/String;
+-    const-string v2, "KnoxTestKey"
 -
--    move-result-object v1
+-    const-string/jumbo v3, "ro.hardware.virtual_device"
 -
--    const-string v2, "1"
+-    invoke-static {v3}, Landroid/os/SystemProperties;->get(Ljava/lang/String;)Ljava/lang/String;
 -
--    invoke-virtual {v2, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+-    move-result-object v3
 -
--    move-result v1
+-    const-string v4, "1"
 -
--    if-eqz v1, :cond_0
+-    invoke-virtual {v4, v3}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 -
--    const-string p0, "DarManagerService"
+-    move-result v3
 -
--    const-string v0, "Will be Failed in device integrity check. But, running on VirtualDevice. Continue - "
+-    const/4 v4, 0x1
 -
--    invoke-static {p0, v0}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+-    if-eqz v3, :cond_0
 -
-+    .locals 0
-+ 
-     const/4 p0, 0x1
+-    const-string v0, "DarManagerService"
 -
-+ 
-     return p0
+-    const-string/jumbo v1, "Will be Failed in device integrity check. But, running on VirtualDevice. Continue - "
+-
+-    invoke-static {v0, v1}, Landroid/util/Log;->d(Ljava/lang/String;Ljava/lang/String;)I
+-
+-    return v4
 -
 -    :cond_0
--    iget-object v1, p0, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
+-    iget-object v3, v1, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
 -
--    invoke-virtual {v1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+-    invoke-virtual {v3}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 -
 -    invoke-static {}, Landroid/os/Binder;->clearCallingIdentity()J
 -
--    move-result-wide v1
+-    move-result-wide v5
 -
 -    const/4 v3, 0x0
 -
 -    :try_start_0
--    new-instance v4, Lcom/samsung/android/security/keystore/AttestationUtils;
+-    new-instance v7, Lcom/samsung/android/security/keystore/AttestationUtils;
 -
--    invoke-direct {v4}, Lcom/samsung/android/security/keystore/AttestationUtils;-><init>()V
+-    invoke-direct {v7}, Lcom/samsung/android/security/keystore/AttestationUtils;-><init>()V
 -
--    sget-object v5, Lcom/android/server/knox/dar/SecureUtil;->sSecureRandom:Ljava/security/SecureRandom;
+-    sget-object v8, Lcom/android/server/knox/dar/SecureUtil;->sSecureRandom:Ljava/security/SecureRandom;
 -
--    const/16 v6, 0x8
+-    const/16 v9, 0x8
 -
--    invoke-virtual {v5, v6}, Ljava/security/SecureRandom;->generateSeed(I)[B
+-    invoke-virtual {v8, v9}, Ljava/security/SecureRandom;->generateSeed(I)[B
 -
 -    move-result-object v8
 -
--    if-eqz v8, :cond_2
+-    if-eqz v8, :cond_3
 -
--    new-instance v5, Landroid/security/keystore/KeyGenParameterSpec$Builder;
+-    new-instance v9, Landroid/security/keystore/KeyGenParameterSpec$Builder;
 -
--    const/4 v6, 0x4
+-    const/4 v10, 0x4
 -
--    invoke-direct {v5, v0, v6}, Landroid/security/keystore/KeyGenParameterSpec$Builder;-><init>(Ljava/lang/String;I)V
+-    invoke-direct {v9, v2, v10}, Landroid/security/keystore/KeyGenParameterSpec$Builder;-><init>(Ljava/lang/String;I)V
 -
--    const-string v13, "SHA-384"
+-    const-string/jumbo v11, "NONE"
 -
--    const-string v14, "SHA-512"
+-    const-string/jumbo v12, "SHA-1"
 -
--    const-string v9, "NONE"
+-    const-string/jumbo v13, "SHA-224"
 -
--    const-string v10, "SHA-1"
+-    const-string/jumbo v14, "SHA-256"
 -
--    const-string v11, "SHA-224"
+-    const-string/jumbo v15, "SHA-384"
 -
--    const-string v12, "SHA-256"
+-    const-string/jumbo v16, "SHA-512"
 -
--    filled-new-array/range {v9 .. v14}, [Ljava/lang/String;
+-    filled-new-array/range {v11 .. v16}, [Ljava/lang/String;
 -
--    move-result-object v6
+-    move-result-object v10
 -
--    invoke-virtual {v5, v6}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->setDigests([Ljava/lang/String;)Landroid/security/keystore/KeyGenParameterSpec$Builder;
+-    invoke-virtual {v9, v10}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->setDigests([Ljava/lang/String;)Landroid/security/keystore/KeyGenParameterSpec$Builder;
 -
--    move-result-object v5
+-    move-result-object v9
 -
--    invoke-virtual {v5}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->build()Landroid/security/keystore/KeyGenParameterSpec;
+-    invoke-virtual {v9}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->build()Landroid/security/keystore/KeyGenParameterSpec;
 -
--    move-result-object v12
+-    move-result-object v9
 -
--    new-instance v5, Lcom/samsung/android/security/keystore/AttestParameterSpec;
+-    new-instance v10, Lcom/samsung/android/security/keystore/AttestParameterSpec;
 -
--    const/4 v11, 0x0
+-    invoke-direct {v10}, Ljava/lang/Object;-><init>()V
 -
--    const/4 v10, 0x1
+-    invoke-static {v0}, Landroid/text/TextUtils;->isEmpty(Ljava/lang/CharSequence;)Z
 -
--    move-object v7, v5
+-    move-result v11
 -
--    move v9, v11
+-    if-eqz v11, :cond_1
 -
--    invoke-direct/range {v7 .. v12}, Lcom/samsung/android/security/keystore/AttestParameterSpec;-><init>([BZZZLandroid/security/keystore/KeyGenParameterSpec;)V
+-    iput-object v0, v10, Lcom/samsung/android/security/keystore/AttestParameterSpec;->mAlgorithm:Ljava/lang/String;
 -
--    invoke-virtual {v4, v5}, Lcom/samsung/android/security/keystore/AttestationUtils;->generateKeyPair(Lcom/samsung/android/security/keystore/AttestParameterSpec;)Ljava/security/KeyPair;
+-    goto :goto_0
 -
--    move-result-object v4
+-    :cond_1
+-    iput-object v0, v10, Lcom/samsung/android/security/keystore/AttestParameterSpec;->mAlgorithm:Ljava/lang/String;
 -
--    if-eqz v4, :cond_1
+-    :goto_0
+-    invoke-virtual {v8}, [B->clone()Ljava/lang/Object;
 -
--    invoke-static {v0}, Lcom/samsung/android/security/keystore/AttestationUtils;->getCertificateChain(Ljava/lang/String;)[Ljava/security/cert/Certificate;
+-    move-result-object v0
 -
--    move-result-object v4
+-    check-cast v0, [B
 -
--    invoke-virtual {p0, v4}, Lcom/android/server/knox/dar/DarManagerService;->checkDeviceIntegrity([Ljava/security/cert/Certificate;)Z
+-    iput-object v0, v10, Lcom/samsung/android/security/keystore/AttestParameterSpec;->mChallenge:[B
+-
+-    iput-boolean v4, v10, Lcom/samsung/android/security/keystore/AttestParameterSpec;->mVerifiableIntegrity:Z
+-
+-    iput-boolean v3, v10, Lcom/samsung/android/security/keystore/AttestParameterSpec;->mSAKUidRequired:Z
+-
+-    iput-object v9, v10, Lcom/samsung/android/security/keystore/AttestParameterSpec;->mSpec:Landroid/security/keystore/KeyGenParameterSpec;
+-
+-    invoke-static {}, Ljava/lang/invoke/VarHandle;->storeStoreFence()V
+-
+-    invoke-virtual {v7, v10}, Lcom/samsung/android/security/keystore/AttestationUtils;->generateKeyPair(Lcom/samsung/android/security/keystore/AttestParameterSpec;)Ljava/security/KeyPair;
+-
+-    move-result-object v0
+-
+-    if-eqz v0, :cond_2
+-
+-    invoke-static {v2}, Lcom/samsung/android/security/keystore/AttestationUtils;->getCertificateChain(Ljava/lang/String;)[Ljava/security/cert/Certificate;
+-
+-    move-result-object v0
+-
+-    invoke-virtual {v1, v0}, Lcom/android/server/knox/dar/DarManagerService;->checkDeviceIntegrity([Ljava/security/cert/Certificate;)Z
 -
 -    move-result v3
 -
--    if-eqz v3, :cond_1
+-    if-eqz v3, :cond_2
 -
--    invoke-static {v0}, Lcom/samsung/android/security/keystore/AttestationUtils;->deleteKey(Ljava/lang/String;)V
+-    invoke-static {v2}, Lcom/samsung/android/security/keystore/AttestationUtils;->deleteKey(Ljava/lang/String;)V
 -    :try_end_0
 -    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
 -    .catchall {:try_start_0 .. :try_end_0} :catchall_0
 -
--    goto :goto_0
+-    goto :goto_1
 -
 -    :catchall_0
 -    move-exception v0
 -
--    goto :goto_4
+-    goto :goto_3
 -
 -    :catch_0
 -    move-exception v0
 -
 -    goto :goto_2
 -
--    :cond_1
--    :goto_0
--    iget-object p0, p0, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
--
--    :goto_1
--    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
--
--    invoke-static {v1, v2}, Landroid/os/Binder;->restoreCallingIdentity(J)V
--
--    goto :goto_3
--
 -    :cond_2
+-    :goto_1
+-    iget-object v0, v1, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
+-
+-    invoke-virtual {v0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+-
+-    invoke-static {v5, v6}, Landroid/os/Binder;->restoreCallingIdentity(J)V
+-
+-    return v3
+-
+-    :cond_3
 -    :try_start_1
 -    new-instance v0, Ljava/lang/NullPointerException;
 -
--    const-string/jumbo v4, "challenge == null"
+-    const-string/jumbo v2, "challenge == null"
 -
--    invoke-direct {v0, v4}, Ljava/lang/NullPointerException;-><init>(Ljava/lang/String;)V
+-    invoke-direct {v0, v2}, Ljava/lang/NullPointerException;-><init>(Ljava/lang/String;)V
 -
 -    throw v0
 -    :try_end_1
@@ -508,21 +531,21 @@ index aa017cb919..f89bd80cb7 100644
 -    :try_end_2
 -    .catchall {:try_start_2 .. :try_end_2} :catchall_0
 -
--    iget-object p0, p0, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
--
 -    goto :goto_1
 -
 -    :goto_3
--    return v3
+-    iget-object v1, v1, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
 -
--    :goto_4
--    iget-object p0, p0, Lcom/android/server/knox/dar/DarManagerService;->mInjector:Lcom/android/server/knox/dar/DarManagerService$Injector;
+-    invoke-virtual {v1}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
 -
--    invoke-virtual {p0}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
--
--    invoke-static {v1, v2}, Landroid/os/Binder;->restoreCallingIdentity(J)V
+-    invoke-static {v5, v6}, Landroid/os/Binder;->restoreCallingIdentity(J)V
 -
 -    throw v0
++    .locals 1
++
++    const/4 v0, 0x1
++
++    return v0
  .end method
  
  .method public final isLicensed()I

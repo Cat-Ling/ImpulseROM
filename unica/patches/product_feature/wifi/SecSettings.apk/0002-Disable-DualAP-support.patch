@@ -1,17 +1,15 @@
-From 97c0729c2829c1ac6829e8a78375582bea03c17e Mon Sep 17 00:00:00 2001
-From: ExtremeXT <75576145+ExtremeXT@users.noreply.github.com>
-Date: Sun, 27 Apr 2025 20:19:34 +0300
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
 Subject: [PATCH] Disable DualAP support
 
+SPF_SupportMobileApDualAp=false (Note10+ Wi-Fi stack has no dual-band hotspot).
+The old is5GhzBandSupported hunk is gone: that method no longer exists in One UI 8.5 DZF3.
 ---
- smali_classes2/com/android/settings/Utils.smali           | 2 +-
- .../settings/wifi/mobileap/utils/WifiApFeatureUtils.smali | 8 +-------
- 2 files changed, 2 insertions(+), 8 deletions(-)
+ smali/com/android/settings/Utils.smali | changed
+ 1 file changed
 
-diff --git a/smali_classes2/com/android/settings/Utils.smali b/smali_classes2/com/android/settings/Utils.smali
-index 2267da5d..bc9bd5a7 100644
---- a/smali_classes2/com/android/settings/Utils.smali
-+++ b/smali_classes2/com/android/settings/Utils.smali
+--- a/smali/com/android/settings/Utils.smali
++++ b/smali/com/android/settings/Utils.smali
 @@ -111,7 +111,7 @@
  
      sput-boolean v2, Lcom/android/settings/Utils;->SPF_SupportMobileApEnhanced:Z
@@ -21,25 +19,6 @@ index 2267da5d..bc9bd5a7 100644
  
      sput-boolean v2, Lcom/android/settings/Utils;->SPF_SupportInstantHotspot:Z
  
-diff --git a/smali_classes3/com/samsung/android/settings/wifi/mobileap/utils/WifiApFeatureUtils.smali b/smali_classes3/com/samsung/android/settings/wifi/mobileap/utils/WifiApFeatureUtils.smali
-index 01eb45b3..6e45eb58 100644
---- a/smali_classes3/com/samsung/android/settings/wifi/mobileap/utils/WifiApFeatureUtils.smali
-+++ b/smali_classes3/com/samsung/android/settings/wifi/mobileap/utils/WifiApFeatureUtils.smali
-@@ -7,13 +7,7 @@
- .method public static is5GhzBandSupported(Landroid/content/Context;)Z
-     .locals 0
- 
--    invoke-static {p0}, Lcom/samsung/android/settings/wifi/mobileap/utils/WifiApFrameworkUtils;->getSemWifiManager(Landroid/content/Context;)Lcom/samsung/android/wifi/SemWifiManager;
--
--    move-result-object p0
--
--    invoke-virtual {p0}, Lcom/samsung/android/wifi/SemWifiManager;->supportWifiAp5GBasedOnCountry()Z
--
--    move-result p0
-+    const/4 p0, 0x0
- 
-     return p0
- .end method
 -- 
-2.45.2
+2.43.0
 

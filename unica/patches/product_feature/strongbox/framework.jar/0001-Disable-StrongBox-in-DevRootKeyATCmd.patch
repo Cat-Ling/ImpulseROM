@@ -1,31 +1,35 @@
-From ad47ca800730c92fb3d1cad80569586e4c9f7080 Mon Sep 17 00:00:00 2001
-From: BlackMesa123 <giangrecosalvo9@gmail.com>
-Date: Sat, 8 Jun 2024 14:16:18 +0200
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
 Subject: [PATCH] Disable StrongBox in DevRootKeyATCmd
 
+Drop both setIsStrongBoxBacked(true) calls; the builder default is false, which is what a
+device without a StrongBox keymaster needs. (The register holding 'true' is shared with the
+setDevicePropertiesAttestationIncluded calls, so the call is removed instead of flipping the
+constant.) Rebased onto One UI 8.5 DZF3.
 ---
-diff --git a/smali_classes5/com/android/server/DevRootKeyATCmd.smali b/smali_classes5/com/android/server/DevRootKeyATCmd.smali
-index b6d18db7..75a6c1e3 100644
---- a/smali_classes5/com/android/server/DevRootKeyATCmd.smali
-+++ b/smali_classes5/com/android/server/DevRootKeyATCmd.smali
-@@ -3972,7 +3972,7 @@
+ smali_classes6/com/android/server/DevRootKeyATCmd.smali | changed
+ 1 file changed
+
+--- a/smali_classes6/com/android/server/DevRootKeyATCmd.smali
++++ b/smali_classes6/com/android/server/DevRootKeyATCmd.smali
+@@ -3269,8 +3269,6 @@
  
-     if-ne v2, v9, :cond_5
+     if-ne v2, v8, :cond_5
  
--    const/4 v10, 0x1
-+    const/4 v10, 0x0
+-    invoke-virtual {v11, v10}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->setIsStrongBoxBacked(Z)Landroid/security/keystore/KeyGenParameterSpec$Builder;
+-
+     :cond_5
+     invoke-virtual {v11}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->build()Landroid/security/keystore/KeyGenParameterSpec;
  
-     invoke-virtual {v15, v10}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->setIsStrongBoxBacked(Z)Landroid/security/keystore/KeyGenParameterSpec$Builder;
+@@ -3515,8 +3513,6 @@
+     :cond_c
+     if-ne v2, v8, :cond_d
  
-@@ -4279,7 +4279,7 @@
- 
-     if-ne v2, v4, :cond_d
- 
--    const/4 v4, 0x1
-+    const/4 v4, 0x0
- 
-     invoke-virtual {v6, v4}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->setIsStrongBoxBacked(Z)Landroid/security/keystore/KeyGenParameterSpec$Builder;
+-    invoke-virtual {v11, v10}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->setIsStrongBoxBacked(Z)Landroid/security/keystore/KeyGenParameterSpec$Builder;
+-
+     :cond_d
+     invoke-virtual {v11}, Landroid/security/keystore/KeyGenParameterSpec$Builder;->build()Landroid/security/keystore/KeyGenParameterSpec;
  
 -- 
-2.46.0
+2.43.0
 

@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] Allow disabling secure windows
+
+updateDisableSecureWindows() no longer requires ro.debuggable, so
+`adb shell settings put secure disable_secure_windows 1` lets screenshots/recording
+capture FLAG_SECURE windows. Default stays off (secure windows stay protected).
+Rebased onto One UI 8.5 DZF3.
+---
+ smali_classes2/com/android/server/wm/WindowManagerService$SettingsObserver.smali | changed
+ 1 file changed
+
+--- a/smali_classes2/com/android/server/wm/WindowManagerService$SettingsObserver.smali
++++ b/smali_classes2/com/android/server/wm/WindowManagerService$SettingsObserver.smali
+@@ -1396,19 +1396,7 @@
+ .method public final updateDisableSecureWindows()V
+     .locals 3
+ 
+-    const-string/jumbo v0, "ro.debuggable"
+-
+     const/4 v1, 0x0
+-
+-    invoke-static {v0, v1}, Landroid/os/SystemProperties;->getBoolean(Ljava/lang/String;Z)Z
+-
+-    move-result v0
+-
+-    if-nez v0, :cond_0
+-
+-    goto :goto_0
+-
+-    :cond_0
+     :try_start_0
+     iget-object v0, p0, Lcom/android/server/wm/WindowManagerService$SettingsObserver;->this$0:Lcom/android/server/wm/WindowManagerService;
+ 
+-- 
+2.43.0
+
