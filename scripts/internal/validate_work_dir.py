@@ -56,9 +56,9 @@ SOURCE_MATCHED_CORE_FILES = (
 # libstagefright.so is intentionally absent here: the d2s video compatibility
 # patch below validates its exact post-patch hash and instruction sequence.
 
-SOURCE_MATCHED_FIRST_BOOT_APKS = (
-    "priv-app/SamsungCamera/SamsungCamera.apk",
-)
+# SamsungCamera used to be pinned here; it now comes from the target firmware and
+# is checked by validate_d2s_stock_camera().
+SOURCE_MATCHED_FIRST_BOOT_APKS: tuple[str, ...] = ()
 
 D2S_SCOPED_PLATFORM_APKS = {
     "com.samsung.accessibility": (
@@ -78,34 +78,7 @@ D2S_SCOPED_PLATFORM_APKS = {
 D2S_SCOPED_SIGNATURE_SERVICE = (
     "system/system/framework/services.jar"
 )
-D2S_STANDARD_CAMERA_VERSION = b"14.1.01.17"
-D2S_STANDARD_CAMERA_PATH = (
-    "system/system/priv-app/SamsungCamera/SamsungCamera.apk"
-)
-D2S_STANDARD_CAMERA_NATIVE_DIR = (
-    "system/system/priv-app/SamsungCamera/lib/arm64"
-)
-D2S_STANDARD_CAMERA_NATIVE_LIBRARIES = (
-    "libmpbase.so",
-    "libcamera_effect_processor_jni.so",
-    "libEventFinderResultConverter.camera.samsung.so",
-    "libdirectbuffer-jni.so",
-    "libSceneDetectorJNI.so",
-    "libimagexmpinjector.so",
-    "libhandgesture.arcsoft.so",
-    "libatomjpeg_panorama_enc.quram.so",
-    "libpanorama.arcsoft.so",
-    "libnode-jni.so",
-    "libc++_shared.so",
-    "libPanoramaInterface_arcsoft.so",
-    "libtype-converter.so",
-    "libnativeutils-jni.so",
-    "libarcore_sdk_c.so",
-    "libimageutils-jni.so",
-    "librenderscript-toolkit.so",
-    "libarcore_sdk_jni.so",
-    "libDiagMonKey.so",
-)
+D2S_CAMERA_PATH = "system/system/priv-app/SamsungCamera/SamsungCamera.apk"
 
 D2S_LEGACY_FCM_LEVELS = ("3", "4")
 
@@ -859,96 +832,23 @@ def validate_apk_signature(apk: Path, apksigner: str) -> list[str]:
     return []
 
 
-def validate_d2s_standard_camera(
-    work_dir: Path, source_firmware_dir: Path
-) -> tuple[list[str], int]:
-    """Require signed v5.5 camera and its byte-identical adjacent native libs."""
-    camera = work_dir / D2S_STANDARD_CAMERA_PATH
-    source_camera = (
-        _firmware_system_dir(source_firmware_dir.resolve())
-        / "priv-app/SamsungCamera/SamsungCamera.apk"
+def validate_d2s_stock_camera(
+    work_dir: Path, target_firmware_dir: Path
+) -> list[str]:
+    """Require the Note10+ camera of the target firmware, byte for byte.
+
+    The EternityROM module payload was edited after Samsung signed it, so its
+    manifest digests no longer verify and PackageManager can reject it on a
+    clean install. The target firmware's own camera is genuine and matches the
+    device's camera HAL.
+    """
+    return _compare_file(
+        _firmware_system_dir(target_firmware_dir.resolve())
+        / "priv-app/SamsungCamera/SamsungCamera.apk",
+        work_dir / D2S_CAMERA_PATH,
+        "stock /system/priv-app/SamsungCamera",
+        "target firmware",
     )
-    errors: list[str] = []
-    if not camera.is_file():
-        return [f"missing standard EternityROM camera: {camera}"], 0
-    if not source_camera.is_file():
-        return [f"missing source Samsung camera signer reference: {source_camera}"], 0
-
-    try:
-        with zipfile.ZipFile(camera) as archive:
-            names = set(archive.namelist())
-            if "AndroidManifest.xml" not in names:
-                errors.append(f"{D2S_STANDARD_CAMERA_PATH}: AndroidManifest.xml is missing")
-            else:
-                manifest = archive.read("AndroidManifest.xml")
-                if (
-                    D2S_STANDARD_CAMERA_VERSION not in manifest
-                    and D2S_STANDARD_CAMERA_VERSION.decode().encode("utf-16le")
-                    not in manifest
-                ):
-                    errors.append(
-                        f"{D2S_STANDARD_CAMERA_PATH}: expected standard EternityROM "
-                        f"camera {D2S_STANDARD_CAMERA_VERSION.decode()}"
-                    )
-            if not any(
-                name == "classes.dex"
-                or (name.startswith("classes") and name.endswith(".dex"))
-                for name in names
-            ):
-                errors.append(f"{D2S_STANDARD_CAMERA_PATH}: DEX payload is missing")
-
-            expected_entries = {
-                f"lib/arm64-v8a/{name}"
-                for name in D2S_STANDARD_CAMERA_NATIVE_LIBRARIES
-            }
-            archive_entries = {
-                name
-                for name in names
-                if name.startswith("lib/arm64-v8a/") and name.endswith(".so")
-            }
-            if archive_entries != expected_entries:
-                missing = sorted(expected_entries - archive_entries)
-                unexpected = sorted(archive_entries - expected_entries)
-                errors.append(
-                    f"{D2S_STANDARD_CAMERA_PATH}: unexpected arm64 native payload; "
-                    f"missing={missing}, extra={unexpected}"
-                )
-
-            native_dir = work_dir / D2S_STANDARD_CAMERA_NATIVE_DIR
-            adjacent_names = (
-                {path.name for path in native_dir.glob("*.so")}
-                if native_dir.is_dir()
-                else set()
-            )
-            expected_names = set(D2S_STANDARD_CAMERA_NATIVE_LIBRARIES)
-            if adjacent_names != expected_names:
-                errors.append(
-                    f"{D2S_STANDARD_CAMERA_NATIVE_DIR}: adjacent native library "
-                    f"set does not match APK; missing="
-                    f"{sorted(expected_names - adjacent_names)}, extra="
-                    f"{sorted(adjacent_names - expected_names)}"
-                )
-            for library in D2S_STANDARD_CAMERA_NATIVE_LIBRARIES:
-                entry = f"lib/arm64-v8a/{library}"
-                adjacent = native_dir / library
-                if entry not in archive_entries or not adjacent.is_file():
-                    continue
-                if adjacent.read_bytes() != archive.read(entry):
-                    errors.append(
-                        f"{D2S_STANDARD_CAMERA_NATIVE_DIR}/{library}: adjacent "
-                        "native library differs from signed APK"
-                    )
-
-        camera_signers = _apk_signature_identities(camera)
-        source_signers = _apk_signature_identities(source_camera)
-        if not camera_signers & source_signers:
-            errors.append(
-                f"{D2S_STANDARD_CAMERA_PATH}: signer does not match the Samsung "
-                "platform certificate from source firmware"
-            )
-    except (OSError, ValueError, zipfile.BadZipFile, KeyError) as error:
-        errors.append(f"invalid standard camera {D2S_STANDARD_CAMERA_PATH}: {error}")
-    return errors, 1
 
 
 def validate_d2s_scoped_platform_apks(
@@ -1302,14 +1202,6 @@ def main() -> int:
             work_dir, args.rom_platform_cert.resolve()
         )
         errors.extend(scoped_apk_errors)
-        camera_errors, camera_count = validate_d2s_standard_camera(
-            work_dir, args.source_firmware_dir
-        )
-        errors.extend(camera_errors)
-        errors.extend(validate_apk_signature(
-            work_dir / D2S_STANDARD_CAMERA_PATH, args.apksigner
-        ))
-        scoped_apk_count += camera_count
     target_fcm_level: str | None = None
     ueventd_rule_count = 0
     platform_native_count = 0
@@ -1327,6 +1219,12 @@ def main() -> int:
             work_dir, args.target_firmware_dir
         )
         errors.extend(fcm_errors)
+        errors.extend(
+            validate_d2s_stock_camera(work_dir, args.target_firmware_dir)
+        )
+        errors.extend(
+            validate_apk_signature(work_dir / D2S_CAMERA_PATH, args.apksigner)
+        )
         ueventd_errors, ueventd_rule_count = validate_modern_ueventd_rules(work_dir)
         errors.extend(ueventd_errors)
         platform_native_errors, platform_native_count = (
@@ -1371,8 +1269,7 @@ def main() -> int:
     if args.require_d2s_scoped_platform_apks:
         print(
             "Scoped d2s platform APK validation: "
-            f"{scoped_apk_count} APKs and services.jar bridge "
-            "(3 ROM-signed, camera Samsung-signed)"
+            f"{scoped_apk_count} APKs and services.jar bridge"
         )
     if args.require_d2s_android16_contracts:
         print(

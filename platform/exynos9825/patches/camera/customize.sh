@@ -164,68 +164,15 @@ done
 
 WAIT_FOR_BACKGROUND_JOBS || exit 1
 
-if [[ "${KEEP_SIGNED_APKS_STOCK:-false}" == "true" && \
-        "${ENABLE_SCOPED_PLATFORM_APK_REBUILDS:-false}" != "true" ]]; then
-    # The module payload contains an intentionally stripped SamsungCamera that
-    # the legacy pipeline expected to rebuild and re-sign. When the scoped
-    # platform-signature bridge is disabled, restore the complete Samsung-
-    # signed API 36 source APK instead.
-    LOG "- Restoring source-signed SamsungCamera (scoped rebuild disabled)"
-    ADD_TO_WORK_DIR "$FW_DIR/$SOURCE_FIRMWARE_PATH" "system" \
-        "system/priv-app/SamsungCamera/SamsungCamera.apk"
-else
-    LOG "- Decompiling the standard EternityROM 5.5 SamsungCamera"
-    DECODE_APK "system" "system/priv-app/SamsungCamera/SamsungCamera.apk"
-fi
+LOG_STEP_OUT
 
-# Camera 14.1.01.17 declares extractNativeLibs=false, but its embedded arm64
-# libraries are not page-aligned. Android therefore cannot mmap them from the
-# signed APK and looks in the package's legacy nativeLibraryDir instead. Keep
-# the genuine Samsung-signed APK byte-for-byte intact and provide exact copies
-# of its native payload in that adjacent directory.
-LOG "- Extracting standard SamsungCamera native libraries"
-CAMERA_APK="$WORK_DIR/system/system/priv-app/SamsungCamera/SamsungCamera.apk"
-CAMERA_LIB_DIR="$WORK_DIR/system/system/priv-app/SamsungCamera/lib/arm64"
-CAMERA_NATIVE_LIBS="
-libmpbase.so
-libcamera_effect_processor_jni.so
-libEventFinderResultConverter.camera.samsung.so
-libdirectbuffer-jni.so
-libSceneDetectorJNI.so
-libimagexmpinjector.so
-libhandgesture.arcsoft.so
-libatomjpeg_panorama_enc.quram.so
-libpanorama.arcsoft.so
-libnode-jni.so
-libc++_shared.so
-libPanoramaInterface_arcsoft.so
-libtype-converter.so
-libnativeutils-jni.so
-libarcore_sdk_c.so
-libimageutils-jni.so
-librenderscript-toolkit.so
-libarcore_sdk_jni.so
-libDiagMonKey.so
-"
-
-DELETE_FROM_WORK_DIR "system" "system/priv-app/SamsungCamera/lib"
-mkdir -p "$CAMERA_LIB_DIR"
-SET_METADATA "system" "system/priv-app/SamsungCamera/lib" \
-    0 0 755 "u:object_r:system_file:s0"
-SET_METADATA "system" "system/priv-app/SamsungCamera/lib/arm64" \
-    0 0 755 "u:object_r:system_file:s0"
-
-for library in $CAMERA_NATIVE_LIBS; do
-    if ! unzip -q -j "$CAMERA_APK" "lib/arm64-v8a/$library" \
-            -d "$CAMERA_LIB_DIR"; then
-        ABORT "Missing SamsungCamera native library: $library"
-    fi
-    [ -s "$CAMERA_LIB_DIR/$library" ] || \
-        ABORT "Empty SamsungCamera native library: $library"
-    SET_METADATA "system" \
-        "system/priv-app/SamsungCamera/lib/arm64/$library" \
-        0 0 644 "u:object_r:system_file:s0"
-done
-unset CAMERA_APK CAMERA_LIB_DIR CAMERA_NATIVE_LIBS library
-
+LOG_STEP_IN "- Restoring the stock Note10+ SamsungCamera"
+# The module payload is EternityROM's camera, edited after Samsung signed it:
+# apksigner reports "DOES NOT VERIFY" (the manifest lists res/*.xml entries that
+# are no longer in the zip), so PackageManager can refuse it on a clean install.
+# Ship the target firmware's own camera byte for byte; it is genuinely signed
+# and matches the device's camera HAL. validate_d2s_stock_camera() enforces it.
+DELETE_FROM_WORK_DIR "system" "system/priv-app/SamsungCamera/SamsungCamera.apk"
+ADD_TO_WORK_DIR "$FW_DIR/$TARGET_FIRMWARE_PATH" "system" \
+    "system/priv-app/SamsungCamera/SamsungCamera.apk" 0 0 644 "u:object_r:system_file:s0"
 LOG_STEP_OUT

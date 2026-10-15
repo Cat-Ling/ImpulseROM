@@ -316,22 +316,7 @@ class PropertyContextValidationTest(unittest.TestCase):
         self.assertEqual(len(VALIDATOR.SOURCE_MATCHED_FIRST_BOOT_APKS), count)
         self.assertEqual([], errors)
 
-    def test_rejects_stripped_first_boot_camera_apk(self) -> None:
-        source_firmware = self.write_source_matched_first_boot_apks()
-        camera = (
-            self.work_dir
-            / "system/system/priv-app/SamsungCamera/SamsungCamera.apk"
-        )
-        camera.write_bytes(b"stripped-module-payload")
-
-        errors, _ = VALIDATOR.validate_source_matched_first_boot_apks(
-            self.work_dir, source_firmware
-        )
-
-        self.assertEqual(1, len(errors))
-        self.assertIn("source-signed /system/priv-app/SamsungCamera", errors[0])
-
-    def write_scoped_platform_apks(self) -> tuple[Path, Path]:
+    def write_scoped_platform_apks(self) -> Path:
         certificate_der = b"test-rom-platform-certificate-der"
         certificate = self.work_dir / "platform.x509.pem"
         certificate.write_text(
@@ -355,50 +340,20 @@ class PropertyContextValidationTest(unittest.TestCase):
             archive.writestr(
                 "classes.dex", b"dex\n035\0" + certificate_der.hex().encode()
             )
-        source_firmware = self.work_dir / "scoped_source_firmware"
-        camera = self.work_dir / VALIDATOR.D2S_STANDARD_CAMERA_PATH
-        source_camera = (
-            source_firmware
-            / "system/system/priv-app/SamsungCamera/SamsungCamera.apk"
-        )
-        native_payloads = {
-            name: f"native:{name}".encode()
-            for name in VALIDATOR.D2S_STANDARD_CAMERA_NATIVE_LIBRARIES
-        }
-        for apk in (camera, source_camera):
-            apk.parent.mkdir(parents=True, exist_ok=True)
-            with zipfile.ZipFile(apk, "w") as archive:
-                archive.writestr(
-                    "AndroidManifest.xml",
-                    b"manifest:" + VALIDATOR.D2S_STANDARD_CAMERA_VERSION,
-                )
-                archive.writestr("classes.dex", b"dex\n035\0camera")
-                archive.writestr("META-INF/CERT.RSA", b"same-samsung-cert")
-                for name, payload in native_payloads.items():
-                    archive.writestr(f"lib/arm64-v8a/{name}", payload)
-        native_dir = self.work_dir / VALIDATOR.D2S_STANDARD_CAMERA_NATIVE_DIR
-        native_dir.mkdir(parents=True, exist_ok=True)
-        for name, payload in native_payloads.items():
-            (native_dir / name).write_bytes(payload)
-        return certificate, source_firmware
+        return certificate
 
     def test_accepts_scoped_platform_apks_and_signature_bridge(self) -> None:
-        certificate, source_firmware = self.write_scoped_platform_apks()
+        certificate = self.write_scoped_platform_apks()
 
         errors, count = VALIDATOR.validate_d2s_scoped_platform_apks(
             self.work_dir, certificate
         )
-        camera_errors, camera_count = VALIDATOR.validate_d2s_standard_camera(
-            self.work_dir, source_firmware
-        )
 
         self.assertEqual(len(VALIDATOR.D2S_SCOPED_PLATFORM_APKS), count)
         self.assertEqual([], errors)
-        self.assertEqual(1, camera_count)
-        self.assertEqual([], camera_errors)
 
     def test_rejects_scoped_platform_apk_signed_by_wrong_key(self) -> None:
-        certificate, _ = self.write_scoped_platform_apks()
+        certificate = self.write_scoped_platform_apks()
         apk = self.work_dir / VALIDATOR.D2S_SCOPED_PLATFORM_APKS[
             "com.samsung.android.sead"
         ]
@@ -411,45 +366,44 @@ class PropertyContextValidationTest(unittest.TestCase):
 
         self.assertTrue(any("not signed" in error for error in errors))
 
-    def test_rejects_standard_camera_with_non_samsung_signer(self) -> None:
-        _, source_firmware = self.write_scoped_platform_apks()
-        camera = self.work_dir / VALIDATOR.D2S_STANDARD_CAMERA_PATH
-        with zipfile.ZipFile(camera, "a") as archive:
-            archive.writestr("META-INF/CERT.RSA", b"wrong-camera-certificate")
-
-        errors, _ = VALIDATOR.validate_d2s_standard_camera(
-            self.work_dir, source_firmware
+    def write_stock_camera(self, assembled: bytes = b"signed-by-samsung") -> Path:
+        target_firmware = self.work_dir / "camera_target_firmware"
+        target_camera = (
+            target_firmware
+            / "system/system/priv-app/SamsungCamera/SamsungCamera.apk"
         )
+        target_camera.parent.mkdir(parents=True, exist_ok=True)
+        target_camera.write_bytes(b"signed-by-samsung")
+        camera = self.work_dir / VALIDATOR.D2S_CAMERA_PATH
+        camera.parent.mkdir(parents=True, exist_ok=True)
+        camera.write_bytes(assembled)
+        return target_firmware
 
-        self.assertTrue(any("signer does not match" in error for error in errors))
+    def test_accepts_stock_note10_camera(self) -> None:
+        target_firmware = self.write_stock_camera()
 
-    def test_rejects_standard_camera_without_adjacent_native_library(self) -> None:
-        _, source_firmware = self.write_scoped_platform_apks()
-        missing = VALIDATOR.D2S_STANDARD_CAMERA_NATIVE_LIBRARIES[0]
-        (self.work_dir / VALIDATOR.D2S_STANDARD_CAMERA_NATIVE_DIR / missing).unlink()
+        errors = VALIDATOR.validate_d2s_stock_camera(self.work_dir, target_firmware)
 
-        errors, _ = VALIDATOR.validate_d2s_standard_camera(
-            self.work_dir, source_firmware
-        )
+        self.assertEqual([], errors)
 
-        self.assertTrue(
-            any("adjacent native library set" in error for error in errors)
-        )
+    def test_rejects_camera_that_differs_from_target_firmware(self) -> None:
+        target_firmware = self.write_stock_camera(b"edited-after-signing")
 
-    def test_rejects_modified_adjacent_camera_native_library(self) -> None:
-        _, source_firmware = self.write_scoped_platform_apks()
-        modified = VALIDATOR.D2S_STANDARD_CAMERA_NATIVE_LIBRARIES[0]
+        errors = VALIDATOR.validate_d2s_stock_camera(self.work_dir, target_firmware)
+
+        self.assertEqual(1, len(errors))
+        self.assertIn("stock /system/priv-app/SamsungCamera", errors[0])
+
+    def test_rejects_missing_target_camera(self) -> None:
+        target_firmware = self.write_stock_camera()
         (
-            self.work_dir / VALIDATOR.D2S_STANDARD_CAMERA_NATIVE_DIR / modified
-        ).write_bytes(b"modified-native-payload")
+            target_firmware
+            / "system/system/priv-app/SamsungCamera/SamsungCamera.apk"
+        ).unlink()
 
-        errors, _ = VALIDATOR.validate_d2s_standard_camera(
-            self.work_dir, source_firmware
-        )
+        errors = VALIDATOR.validate_d2s_stock_camera(self.work_dir, target_firmware)
 
-        self.assertTrue(
-            any("differs from signed APK" in error for error in errors)
-        )
+        self.assertTrue(any("target firmware is missing" in e for e in errors))
 
     def write_target_fcm_contract(self) -> Path:
         target_firmware = self.work_dir / "target_firmware"
