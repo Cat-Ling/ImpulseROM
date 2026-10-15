@@ -118,21 +118,20 @@ GET_LATEST_FIRMWARE()
 
     # Reproducible builds: FIRMWARE_PIN_<MODEL>_<CSC> (dashes as underscores) overrides the lookup.
     local PIN_VAR="FIRMWARE_PIN_${1//-/_}_$2"
-    if [ -n "${!PIN_VAR:-}" ]; then
-        printf '%s\n' "${!PIN_VAR}"
-        return 0
-    fi
+    local LATEST="${!PIN_VAR:-}"
 
-    local LATEST
-    LATEST="$(curl -s --retry 5 --retry-delay 5 "https://fota-cloud-dn.ospserver.net/firmware/$2/$1/version.xml" \
-        | perl -nE 'say $1 if /<latest[^>]*>(.*?)<\/latest>/')"
+    if [ ! "$LATEST" ]; then
+        LATEST="$(curl -s --retry 5 --retry-delay 5 "https://fota-cloud-dn.ospserver.net/firmware/$2/$1/version.xml" \
+            | perl -nE 'say $1 if /<latest[^>]*>(.*?)<\/latest>/')"
+    fi
 
     # The CDN answers 403 to some networks; ask FUS through the tool the download uses.
     if [ ! "$LATEST" ] && [ -x "$TOOLS_DIR/bin/samloader-rs" ]; then
         LATEST="$("$TOOLS_DIR/bin/samloader-rs" check-update -m "$1" -r "$2" 2> /dev/null | head -n 1)"
     fi
 
-    printf '%s\n' "$LATEST"
+    # PDA/CSC/MODEM only: samloader-rs prints a fourth field that the build gates do not expect.
+    printf '%s\n' "$LATEST" | cut -d / -f 1-3
 }
 
 # PARSE_FIRMWARE_STRING <string>
