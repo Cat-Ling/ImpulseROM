@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] Make the Screen resolution setting available
+
+The One UI 8.5 build for S24 FE keeps the whole ScreenResolutionFragment but folds
+ScreenResolutionPreferenceController.getAvailabilityStatus() to the constant 3
+(UNSUPPORTED_ON_DEVICE). Return 0 (AVAILABLE) so the entry shows up in Display settings
+on QHD devices (DYN_RESOLUTION_CONTROL is set in floating_feature.xml).
+---
+ smali_classes5/com/samsung/android/settings/display/controller/ScreenResolutionPreferenceController.smali | 1 +-
+ 1 file changed
+
+--- a/smali_classes5/com/samsung/android/settings/display/controller/ScreenResolutionPreferenceController.smali
++++ b/smali_classes5/com/samsung/android/settings/display/controller/ScreenResolutionPreferenceController.smali
+@@ -159,7 +159,7 @@
+ 
+     sget-object p0, Lcom/samsung/android/settings/Rune;->COMMON_CONFIG_PACKAGE_NAME_SMART_MANAGER:Ljava/lang/String;
+ 
+-    const/4 p0, 0x3
++    const/4 p0, 0x0
+ 
+     return p0
+ .end method
+-- 
+2.43.0
+

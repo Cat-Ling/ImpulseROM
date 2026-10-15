@@ -155,7 +155,6 @@ if ! $SOURCE_HAS_QHD_DISPLAY; then
         LOG_STEP_IN "- Applying multi resolution patches"
 
         DECODE_APK "system" "system/framework/framework.jar"
-        DECODE_APK "system" "system/framework/gamemanager.jar"
         DECODE_APK "system" "system/priv-app/SecSettings/SecSettings.apk"
 
         # Do not splice Android 15 e2s platform binaries into Android 16.
@@ -173,9 +172,10 @@ if ! $SOURCE_HAS_QHD_DISPLAY; then
             LOG "- Keeping API $SOURCE_API_LEVEL source graphics core for multi resolution"
         fi
         ADD_TO_WORK_DIR "e2sxxx" "system" "media"
-        APPLY_PATCH "system" "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/resolution/framework.jar/0001-Enable-dynamic-resolution-control.patch"
-        APPLY_PATCH "system" "system/framework/gamemanager.jar" "$SRC_DIR/unica/patches/product_feature/resolution/gamemanager.jar/0001-Enable-dynamic-resolution-control.patch"
-        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/resolution/SecSettings.apk/0001-Enable-dynamic-resolution-control.patch"
+        # One UI 8.5 (API 36) already ships the whole Screen resolution UI and the multi
+        # resolution window code; both are only switched off by folded constants.
+        APPLY_PATCH "system" "system/framework/framework.jar" "$SRC_DIR/unica/patches/product_feature/resolution/framework.jar/0001-Enable-FW_SUPPORT_MULTI_RESOLUTION.patch"
+        APPLY_PATCH "system" "system/priv-app/SecSettings/SecSettings.apk" "$SRC_DIR/unica/patches/product_feature/resolution/SecSettings.apk/0001-Enable-screen-resolution-entry.patch"
         SET_FLOATING_FEATURE_CONFIG "SEC_FLOATING_FEATURE_COMMON_CONFIG_DYN_RESOLUTION_CONTROL" "WQHD,FHD,HD"
         LOG_STEP_OUT
     fi
