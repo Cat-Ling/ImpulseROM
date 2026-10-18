@@ -74,6 +74,12 @@ D2S_SCOPED_PLATFORM_APKS = {
         "system/system/priv-app/EnvironmentAdaptiveDisplay/"
         "EnvironmentAdaptiveDisplay.apk"
     ),
+    "com.android.settings": (
+        "system/system/priv-app/SecSettings/SecSettings.apk"
+    ),
+    "com.android.providers.settings": (
+        "system/system/priv-app/SettingsProvider/SettingsProvider.apk"
+    ),
 }
 D2S_SCOPED_SIGNATURE_SERVICE = (
     "system/system/framework/services.jar"

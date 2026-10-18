@@ -288,6 +288,8 @@ BUILD()
             /system/system/priv-app/Accessibility/Accessibility.apk|\
             /system/system/system_ext/priv-app/SystemUI/SystemUI.apk|\
             /system/system/priv-app/EnvironmentAdaptiveDisplay/EnvironmentAdaptiveDisplay.apk|\
+            /system/system/priv-app/SecSettings/SecSettings.apk|\
+            /system/system/priv-app/SettingsProvider/SettingsProvider.apk|\
             /system/system/priv-app/SamsungCamera/SamsungCamera.apk)
                 if [[ "${ENABLE_SCOPED_PLATFORM_APK_REBUILDS:-false}" != "true" ]]; then
                     LOG "- Keeping scoped platform APK at stock (compat bridge disabled): ${INPUT_FILE//$WORK_DIR/}"

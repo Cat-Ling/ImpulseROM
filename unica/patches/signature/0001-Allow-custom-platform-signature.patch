@@ -5,8 +5,8 @@ Subject: [PATCH] Trust the ROM key only for patched preinstalled platform apps
 
 The Android 16 donor moved package scanning enough that the old unrestricted
 custom-platform-signature patch no longer applied. Keep the compatibility path
-strictly scoped to four known, preinstalled /system packages that this port
-must rebuild. Data-app updates signed with the public AOSP test key are not
+strictly scoped to six known, preinstalled /system packages that this port
+must rebuild (four d2s hardware fixes plus Settings and SettingsProvider). Data-app updates signed with the public AOSP test key are not
 trusted.
 ---
  .../server/pm/InstallPackageHelper.smali      |  14 ++
@@ -78,7 +78,7 @@ trusted.
      :cond_c
      invoke-interface {p0, v1}, Lcom/android/internal/pm/parsing/pkg/ParsedPackage;->setSignedWithPlatformKey(Z)Lcom/android/internal/pm/parsing/pkg/ParsedPackage;
 
-@@ -5003,3 +5014,137 @@
+@@ -5003,3 +5014,153 @@
      :goto_2
      return-void
  .end method
@@ -129,6 +129,22 @@ trusted.
 +    if-nez v0, :cond_true
 +
 +    const-string v0, "com.samsung.android.sead"
++
++    invoke-virtual {v0, p0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result v0
++
++    if-nez v0, :cond_true
++
++    const-string v0, "com.android.settings"
++
++    invoke-virtual {v0, p0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result v0
++
++    if-nez v0, :cond_true
++
++    const-string v0, "com.android.providers.settings"
 +
 +    invoke-virtual {v0, p0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 +

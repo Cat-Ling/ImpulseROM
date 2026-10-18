@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] Enable fast charging by default
+
+With SEC_FLOATING_FEATURE_BATTERY_SUPPORT_PD_HV=TRUE (needed for super fast charging) the
+first-boot defaults write adaptive_fast_charging=0. The stock Note10+ ships it as 1.
+---
+
+--- a/smali/com/android/providers/settings/DatabaseHelper.smali
++++ b/smali/com/android/providers/settings/DatabaseHelper.smali
+@@ -2593,7 +2593,7 @@
+ 
+     if-nez p1, :cond_4
+ 
+-    invoke-direct {p0, v3, v4, v2}, Lcom/android/providers/settings/DatabaseHelper;->loadSetting(Landroid/database/sqlite/SQLiteStatement;Ljava/lang/String;Ljava/lang/Object;)V
++    invoke-direct {p0, v3, v4, v1}, Lcom/android/providers/settings/DatabaseHelper;->loadSetting(Landroid/database/sqlite/SQLiteStatement;Ljava/lang/String;Ljava/lang/Object;)V
+ 
+     goto :goto_2
+ 
+-- 
+2.43.0
+

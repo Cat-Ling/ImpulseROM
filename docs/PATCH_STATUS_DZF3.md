@@ -5,25 +5,26 @@ DZF3 base 21 of them no longer applied and were recorded in `out/skipped_patches
 (`PATCH_DRIFT_POLICY=skip`). This file says what was done about each one.
 
 "Dry-run OK" means `patch -p1 --fuzz=0 --dry-run` succeeds against the decoded DZF3 smali.
-**Nothing below has been run on a device yet.**
+alpha5-dev boots on a device; the items below are otherwise not yet confirmed on hardware.
 
-## Read this first: patches to SecSettings and SettingsProvider are currently inert
+## SecSettings and SettingsProvider are now on the signature bridge (from alpha6-dev)
 
 `scripts/apktool.sh` keeps every platform-signed APK byte-identical to the source firmware
 (`KEEP_SIGNED_APKS_STOCK=true`) unless the package is on the scoped signature-bridge list
-(`unica/patches/signature`: SystemUI, Accessibility, BiometricSetting, EnvironmentAdaptiveDisplay).
-`SecSettings.apk` and `SettingsProvider.apk` are not on it, so the build applies patches to
-their decoded trees and then throws the result away (`Keeping signed APK at stock`).
-
-Inert until those two packages are added to the bridge (a trust-boundary change that needs an
-explicit decision):
+(`unica/patches/signature`). Up to alpha5-dev the list was SystemUI, Accessibility,
+BiometricSetting and EnvironmentAdaptiveDisplay, so every SecSettings/SettingsProvider patch was
+applied and then thrown away (`Keeping signed APK at stock`). With the maintainer's approval
+(2026-10-18) `com.android.settings` and `com.android.providers.settings` were added (preinstalled
+`/system` copies only), which activates:
 
 - the **Screen resolution** entry in Settings (`resolution/SecSettings.apk`; stock
-  `ScreenResolutionPreferenceController.getAvailabilityStatus()` is a folded constant 3, so the
-  entry stays hidden even though the framework flags are on),
+  `ScreenResolutionPreferenceController.getAvailabilityStatus()` is a folded constant 3),
 - gestures by default (SecSettings + SettingsProvider),
+- fast charging on by default (`SettingsProvider.apk/0002`: with `BATTERY_SUPPORT_PD_HV=TRUE`
+  the first-boot defaults wrote `adaptive_fast_charging=0`; stock Note10+ ships 1),
 - hotspot DualAP UI flag and Enhanced Open dropdown,
-- the older SecSettings patches (outdoor mode, 4-digit PIN, real model number).
+- the older SecSettings patches (outdoor mode, 4-digit PIN, real model number in About phone via
+  `ro.boot.em.model`; `ro.product.model` stays the donor's on purpose because Galaxy AI keys on it).
 
 ## Rebased onto DZF3 (10 patches)
 
@@ -32,12 +33,12 @@ explicit decision):
 | Secure screenshots (opt-in) | `mods/settings/.../services.jar/0001-Allow-disabling-secure-windows` | yes. Drops the `ro.debuggable` gate, so `adb shell settings put secure disable_secure_windows 1` lets screenshots/recording capture `FLAG_SECURE` windows. **Off by default** (the old patch disabled secure windows for everyone). |
 | App downgrade | `.../services.jar/0002-Allow-app-downgrade` | yes |
 | Target-SDK check | `.../services.jar/0003-Bypass-app-target-SDK` | yes. Minimum installable target SDK read as 0. |
-| 4-digit auto-confirm PIN | `.../services.jar/0005-Set-auto-confirm-PIN-min-digits-to-4` | yes (the SecSettings counterpart is inert) |
-| Hotspot DualAP | `wifi/semwifi-service.jar/0002-...` | yes: `isWifiApEnabledWithDualBand()` returns false. The SecSettings half (`SPF_SupportMobileApDualAp`) is inert. |
+| 4-digit auto-confirm PIN | `.../services.jar/0005-Set-auto-confirm-PIN-min-digits-to-4` | yes (plus the SecSettings counterpart from alpha6-dev) |
+| Hotspot DualAP | `wifi/semwifi-service.jar/0002-...` | yes: `isWifiApEnabledWithDualBand()` returns false. |
 | StrongBox | `strongbox/framework.jar/0001-...` | yes. Branches over both `setIsStrongBoxBacked(true)` calls in `DevRootKeyATCmd` (the Note10+ has no StrongBox). |
-| Gestures by default | `.../SecSettings.apk/0004-...`, `.../SettingsProvider.apk/0001-...` | **inert** |
-| Hotspot DualAP UI flag | `wifi/SecSettings.apk/0002-...` | **inert** |
-| Hotspot Enhanced Open | `wifi/SecSettings.apk/0004-...` | **inert**. Dropdown uses the arrays without "Enhanced Open" (ids resolved by name from `public.xml`). |
+| Gestures by default | `.../SecSettings.apk/0004-...`, `.../SettingsProvider.apk/0001-...` | from alpha6-dev |
+| Hotspot DualAP UI flag | `wifi/SecSettings.apk/0002-...` | from alpha6-dev |
+| Hotspot Enhanced Open | `wifi/SecSettings.apk/0004-...` | from alpha6-dev. Dropdown uses the arrays without "Enhanced Open" (ids resolved by name from `public.xml`). |
 
 All method-body changes keep the old body as dead code behind an early return/branch. The build's
 DEX-inventory guard (`scripts/internal/dex_inventory.py`) requires every class/method/field/type
