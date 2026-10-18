@@ -46,6 +46,8 @@ if [[ "${TARGET_SINGLE_SYSTEM_IMAGE:-}" == "essi85" ]]; then
     # Samsung APK and drops the scoped d2s fixes.
     export KEEP_SIGNED_APKS_STOCK="${KEEP_SIGNED_APKS_STOCK:-true}"
     export ENABLE_SCOPED_PLATFORM_APK_REBUILDS="${ENABLE_SCOPED_PLATFORM_APK_REBUILDS:-true}"
+    # Preload the KernelSU-Next manager (pinned v1.0.9, sha256-checked) for the bundled ExtremeKRNL.
+    export INCLUDE_KERNELSU_MANAGER="${INCLUDE_KERNELSU_MANAGER:-true}"
 else
     export ENABLE_SCOPED_PLATFORM_APK_REBUILDS="${ENABLE_SCOPED_PLATFORM_APK_REBUILDS:-false}"
 fi
