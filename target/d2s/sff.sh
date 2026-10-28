@@ -54,7 +54,10 @@ SEC_FLOATING_FEATURE_LOCKSCREEN_CONFIG_SUBDISPLAY_POLICY=
 SEC_FLOATING_FEATURE_SETTINGS_CONFIG_BRAND_NAME=Galaxy Note10+
 SEC_FLOATING_FEATURE_SETTINGS_CONFIG_ELECTRIC_RATED_VALUE=DC 10 V; 4.5 A
 SEC_FLOATING_FEATURE_SETTINGS_CONFIG_FCC_ID=A3LSMN975F
-SEC_FLOATING_FEATURE_SYSTEM_CONFIG_SIOP_POLICY_FILENAME=siop_davinci2_exynos9820
+# SDHMS derives the AES key of its encrypted siop_default/siop_model assets from this name. The One UI 8.5
+# SamsungDeviceHealthManagerService ships them encrypted for the donor policy and has no per-device Note10+
+# document, so a different name decrypts to garbage ("Levels are null", "Fails to parse DEFAULT policy XML").
+SEC_FLOATING_FEATURE_SYSTEM_CONFIG_SIOP_POLICY_FILENAME=siop_r12s_s5e9945
 SEC_FLOATING_FEATURE_SYSTEMUI_CONFIG_CORNER_ROUND=3.3
 
 # SPen
