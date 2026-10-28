@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] Spoof One UI 4.1 for the stock Note10+ camera
+
+The stock Note10+ camera (12.0.01.50) maps ro.build.version.oneui to an enum that only knows
+One UI 1.0..4.1 (OneUiVersion.get) and throws IllegalArgumentException("... 80500") on One UI 8.5,
+so the app dies at start. SemSystemProperties.getInt now answers 40100 (One UI 4.1) for that one key,
+and only inside com.sec.android.app.camera. Every other process still reads the real value.
+ActivityThread.currentPackageName() is already referenced in this dex, so the DEX inventory is unchanged.
+---
+
+--- a/smali_classes3/android/os/SemSystemProperties.smali
++++ b/smali_classes3/android/os/SemSystemProperties.smali
+@@ -87,8 +87,33 @@
+ .end method
+ 
+ .method public static whitelist getInt(Ljava/lang/String;I)I
+-    .locals 0
++    .locals 2
+ 
++    const-string v0, "ro.build.version.oneui"
++
++    invoke-virtual {v0, p0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result v0
++
++    if-eqz v0, :cond_real
++
++    invoke-static {}, Landroid/app/ActivityThread;->currentPackageName()Ljava/lang/String;
++
++    move-result-object v0
++
++    const-string v1, "com.sec.android.app.camera"
++
++    invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result v0
++
++    if-eqz v0, :cond_real
++
++    const v0, 0x9ca4
++
++    return v0
++
++    :cond_real
+     invoke-static {p0, p1}, Landroid/os/SystemProperties;->getInt(Ljava/lang/String;I)I
+ 
+     move-result p0
+-- 
+2.43.0
+

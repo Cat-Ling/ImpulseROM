@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] Alias Activity.semSetDisablePreviewScreenshots for the stock Note10+ camera
+
+One UI 8.5 renamed Activity.semSetDisablePreviewScreenshots(Z) to setDisablePreviewScreenshots(Z).
+The stock Note10+ camera (12.0.01.50) still calls the sem name from CameraWindowManager and dies with
+NoSuchMethodError at start. Keep the old name as a thin forwarder. This adds one method, so it is listed
+in scripts/internal/dex_allowed_additions/system/system/framework/framework.jar.tsv (logical dex 1).
+---
+
+--- a/smali/android/app/Activity.smali
++++ b/smali/android/app/Activity.smali
+@@ -12787,6 +12787,14 @@
+     return-void
+ .end method
+ 
++.method public semSetDisablePreviewScreenshots(Z)V
++    .locals 0
++
++    invoke-virtual {p0, p1}, Landroid/app/Activity;->setDisablePreviewScreenshots(Z)V
++
++    return-void
++.end method
++
+ .method public whitelist setEnterSharedElementCallback(Landroid/app/SharedElementCallback;)V
+     .locals 0
+ 
+-- 
+2.43.0
+
