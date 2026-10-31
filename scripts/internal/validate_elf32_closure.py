@@ -38,6 +38,11 @@ EXPECTED_VNDK_VERSION = "31"
 RUNTIME_APEX = "com.android.runtime.apex"
 I18N_APEX = "com.android.i18n.apex"
 VNDK31_APEX = "com.android.vndk.v31.apex"
+# API 37 /system/lib64/libandroid_net.so NEEDs the Tethering APEX public library.
+# The APEX ships compressed; its original_apex is authenticated like the others and
+# only its exported library is visible to the system namespace.
+TETHERING_COMPRESSED_APEX = "com.google.android.tethering_compressed.apex"
+TETHERING_APEX_EXPORTS = frozenset({"libcom.android.tethering.connectivity_native.so"})
 VNDK_APEX_PATTERN = "com.android.vndk.v*.apex"
 EXPECTED_VNDK31_ELF_PER_ABI = 134
 # Kept as a public compatibility alias for the original unit tests and any
@@ -858,6 +863,7 @@ def _resolve_android_file(
         ("/apex/com.android.runtime", runtime_root),
         ("/apex/com.android.i18n", i18n_root),
         ("/apex/com.android.vndk.v31", vndk_root),
+        ("/apex/com.android.tethering", apexes["tethering"].payload_root if "tethering" in apexes else None),
         ("/system_ext", _system_ext_root(work_dir)),
         ("/vendor", work_dir / "vendor"),
         ("/product", product_root),
@@ -933,6 +939,7 @@ def build_provider_index(
         ],
         "runtime": [],
         "i18n": [],
+        "tethering": [],
         # Local VNDK extensions precede the matching APEX, but remain in the
         # VNDK namespace so the core/SP export gate and child context apply.
         "vndk": [
@@ -956,6 +963,11 @@ def build_provider_index(
     if i18n_root:
         namespace_roots["i18n"].append(
             (i18n_root / lib_dir, False, f"/apex/com.android.i18n/{lib_dir}")
+        )
+    tethering_root = apexes["tethering"].payload_root if "tethering" in apexes else None
+    if tethering_root:
+        namespace_roots["tethering"].append(
+            (tethering_root / lib_dir, False, f"/apex/com.android.tethering/{lib_dir}")
         )
     if vndk_root:
         namespace_roots["vndk"].append(
@@ -1063,9 +1075,12 @@ class Resolver:
         order = {
             "vendor": ("vendor", "vndk", "runtime", "system", "i18n"),
             "vndk": ("vndk", "vendor", "runtime", "system", "i18n"),
-            "system": ("system", "runtime", "i18n"),
+            "system": ("system", "runtime", "i18n")
+            + (("tethering",) if needed in TETHERING_APEX_EXPORTS else ()),
             "runtime": ("runtime", "system"),
             "i18n": ("i18n", "runtime", "system"),
+            # APEX-internal dependencies first, then bionic and the system libraries.
+            "tethering": ("tethering", "runtime", "system"),
         }[context]
         candidates: list[Provider] = []
         seen: set[tuple[str, Path]] = set()
@@ -1586,6 +1601,18 @@ def validate_work_dir(
         _apex_inspection_check(report, "runtime_payload", apexes["runtime"], "com.android.runtime")
         _apex_inspection_check(report, "i18n_payload", apexes["i18n"], "com.android.i18n")
         _apex_inspection_check(report, "vndk31_payload", apexes["vndk"], "com.android.vndk.v31")
+        tethering_apexes = _find_unique(work_dir, TETHERING_COMPRESSED_APEX)
+        if len(tethering_apexes) == 1:
+            inner = temporary_root / "tethering-compressed" / "original_apex"
+            inner.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                with zipfile.ZipFile(tethering_apexes[0]) as archive:
+                    inner.write_bytes(archive.read("original_apex"))
+            except (OSError, KeyError, zipfile.BadZipFile) as error:
+                report.add_check("tethering_payload", False, f"cannot unpack original_apex: {error}")
+                return report
+            apexes["tethering"] = apex_inspector(inner, "tethering", temporary_root)
+            _apex_inspection_check(report, "tethering_payload", apexes["tethering"], "com.android.tethering")
         if any(apex.error or apex.payload_root is None for apex in apexes.values()):
             return report
 
