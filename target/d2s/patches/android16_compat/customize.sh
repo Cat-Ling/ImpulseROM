@@ -107,7 +107,7 @@ KNOX_GUARD_CONFIGS=(
     "system/etc/irremovable_list.txt"
     "system/etc/permissions/platform.xml"
     "system/etc/sysconfig/allowed-system-preload-apps.xml"
-    "system/etc/sysconfig/required-packages.xml"
+    "system/etc/sysconfig/system-required-packages.xml"
     "system/etc/sysconfig/safe-mode-allow-list.xml"
 )
 for KNOX_GUARD_CONFIG in "${KNOX_GUARD_CONFIGS[@]}"; do
@@ -122,6 +122,10 @@ for KNOX_GUARD_CONFIG in "${KNOX_GUARD_CONFIGS[@]}"; do
     fi
     sed -i '/com\.samsung\.android\.kgclient/d' "$KNOX_GUARD_CONFIG_PATH"
 done
+
+# One UI 9 (API 37) ships a dedicated preinstalled-packages file for KnoxGuard; the
+# package itself is removed above, so drop the leftover declaration too.
+rm -f "$WORK_DIR/system/system/etc/sysconfig/preinstalled-packages-com.samsung.android.kgclient.xml"
 
 # Secure Folder must not key its availability to the obsolete ICCC property.
 # The d2s services.jar patch below handles the actual SAK/DRK results while
@@ -260,10 +264,10 @@ while read -r BPF_INPUT_SHA256 BPF_INPUT_PATH BPF_INPUT_UID \
         "$BPF_INPUT_UID" "$BPF_INPUT_GID" "$BPF_INPUT_MODE" \
         "$BPF_INPUT_LABEL"
 done <<'EOF'
-ca878a914a6f436a5af846d2353dbe44bccf592c527d5b03ac5e6db8e8857b9e ethtool 0 2000 755 u:object_r:system_file:s0
-a8cb1311b422a1bc9b0065d73e6e615b61207d331fd42950e8e4da210c46c528 for-system/clatd 1029 1029 6755 u:object_r:clatd_exec:s0
-7b77a7ac01d01b6787544f2a01a77f4fd929ec6da0625c6f413764e8622ff2a2 netbpfload 0 0 750 u:object_r:bpfloader_exec:s0
-954fd201f94dc49e2d40d9ef90b6d032b177ddf6c85083a5953ebcb915cc0b70 ot-daemon 0 2000 755 u:object_r:ot_daemon_exec:s0
+94e002a189db9f0f605c1c80cdc969b5c7b0a25c72be9ed39c00cf6cb885fc4b ethtool 0 2000 755 u:object_r:system_file:s0
+60afc10c53d7ffd2bc056d2f3ce7a8e16848b53b53a0126870318369844d1b63 for-system/clatd 1029 1029 6755 u:object_r:clatd_exec:s0
+775d705134ac47146a536d31e76af3d439d0e29d48087bc6c64d04c102c4bed6 netbpfload 0 0 750 u:object_r:bpfloader_exec:s0
+68fbcf063b5cb5653d1636d0cf85b896a7d3e6a842c437df890558e8377edfcc ot-daemon 0 2000 755 u:object_r:ot_daemon_exec:s0
 EOF
 
 SET_METADATA "system" "system/etc/netbpfload_compat" \
@@ -274,26 +278,35 @@ SET_METADATA "system" "system/etc/netbpfload_compat/bin/for-system" \
     1029 1000 750 "u:object_r:system_file:s0"
 
 BPF_LOADER="$BPF_COMPAT_BIN/netbpfload"
-BPF_FROM="280200546808009008614439c8010036"
-BPF_TO="2802005468080090086144390e000014"
-BPF_MATCH_COUNT="$(xxd -p "$BPF_LOADER" | tr -d ' \n' | grep -o "$BPF_FROM" | wc -l)"
-if [ "$BPF_MATCH_COUNT" != "1" ]; then
-    ABORT "Expected one Android 25Q4 NetBpfLoad kernel gate, found $BPF_MATCH_COUNT"
-fi
-HEX_PATCH "$BPF_LOADER" "$BPF_FROM" "$BPF_TO" || \
-    ABORT "Failed to patch the Android 25Q4 NetBpfLoad kernel gate"
+# API 37 NetBpfLoad refuses kernels below 5.10 (25Q4) and 5.15 (26Q3) once the
+# platform API level reaches 36.1/37.1. ExtremeKRNL reports a 5.4 network-BPF
+# baseline, so clear only these two release flags at their gate sites:
+# "ldrb wN, [xN, #flag]" becomes "mov wN, #0" and the following tbz takes the
+# normal pass path with the same register state as on an older platform.
+for BPF_GATE in \
+        "6a0800d04a914439ca000036 6a0800d00a008052ca000036" \
+        "680800d008a1443928010036 680800d00800805228010036"; do
+    BPF_FROM="${BPF_GATE% *}"
+    BPF_TO="${BPF_GATE#* }"
+    BPF_MATCH_COUNT="$(xxd -p "$BPF_LOADER" | tr -d ' \n' | grep -o "$BPF_FROM" | wc -l)"
+    if [ "$BPF_MATCH_COUNT" != "1" ]; then
+        ABORT "Expected one API 37 NetBpfLoad kernel gate $BPF_FROM, found $BPF_MATCH_COUNT"
+    fi
+    HEX_PATCH "$BPF_LOADER" "$BPF_FROM" "$BPF_TO" || \
+        ABORT "Failed to patch the API 37 NetBpfLoad kernel gate $BPF_FROM"
+done
 if [ "$(sha256sum "$BPF_LOADER" | cut -d " " -f 1)" != \
-        "a3507cc9cdf11c7eb4301d71a596a1fb64bc774aefc7185f6a237b8a4435a448" ]; then
+        "d50703f96aab9453053f3446ba70fe6df19850349ca5c165cb011f4447a8aa5d" ]; then
     ABORT "Patched NetBpfLoad hash mismatch"
 fi
 
-BPF_INIT_RC="$WORK_DIR/system/system/etc/init/hw/init.rc"
+BPF_INIT_RC="$WORK_DIR/system/system/etc/init/netbpfload.rc"
 BPF_TRIGGER_COUNT="$(grep -c '^[[:space:]]*exec_start bpfloader[[:space:]]*$' "$BPF_INIT_RC")"
 if [ "$BPF_TRIGGER_COUNT" != "1" ]; then
     ABORT "Expected one load-bpf-programs bpfloader start, found $BPF_TRIGGER_COUNT"
 fi
 sed -i '/^[[:space:]]*exec_start bpfloader[[:space:]]*$/i\
-    # d2s: retain the APEX path/namespace while bypassing only its 5.10 hard gate.\
+    # d2s: retain the APEX path/namespace while bypassing only its 5.10/5.15 hard gates.\
     mount none /system/etc/netbpfload_compat/bin /apex/com.android.tethering/bin bind' \
     "$BPF_INIT_RC"
 
@@ -321,5 +334,5 @@ unset AUDIO_BRIDGE_FILE AUDIO_BRIDGE_INPUT AUDIO_MANIFEST
 unset BPF_APEX BPF_COMPAT_ROOT BPF_COMPAT_BIN BPF_TMP_ROOT
 unset BPF_INPUT_SHA256 BPF_INPUT_PATH BPF_INPUT_UID BPF_INPUT_GID
 unset BPF_INPUT_MODE BPF_INPUT_LABEL BPF_OUTPUT
-unset BPF_LOADER BPF_FROM BPF_TO BPF_MATCH_COUNT
+unset BPF_LOADER BPF_GATE BPF_FROM BPF_TO BPF_MATCH_COUNT
 unset BPF_INIT_RC BPF_TRIGGER_COUNT

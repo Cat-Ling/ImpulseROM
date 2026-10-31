@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import struct
@@ -25,7 +26,7 @@ from typing import Mapping, Sequence
 EM_ARM = 40
 EM_AARCH64 = 183
 
-EXPECTED_SOURCE_MARKER = "S721BXXSCDZF3/S721BOXMCDZF3/S721BXXSCDZF3"
+EXPECTED_SOURCE_MARKER = os.environ.get("IMPULSE_DONOR_BUILD", "S721BXXSCDZF3/S721BOXMCDZF3/S721BXXSCDZF3")
 EXPECTED_MULTILIB_MARKER = "S711BXXSGGZF2/S711BOXMGGZF2/S711BXXSGGZF2"
 EXPECTED_TARGET_MARKER = "N975FXXS9HWHA/N975FOXM9HWH6/N975FXXS9HWH6"
 
@@ -79,10 +80,10 @@ FRAMEWORK_FACTORY_HASHES = {
         "f7ec826a69c58c900b5f42cd0cb2c443018883035c4c06d897a5f2a01c95d77b"
     ),
     "system/system/lib64/libaudiohal.so": (
-        "c753712c4f5e00f8a0d2cb9d930ee656e4898b6ecbd7c49b80d18d83a49f6584"
+        "a64de33f92b0224f0736f0b6c7652fe4aae0ce5dd585d54a43b7fac263cf6c77"
     ),
     "system/system/lib64/libaudiohal@6.0.so": (
-        "6bca9f357f2054bb03fc0d8f933330895250c79e5fe6c9c79d06c094448f86d9"
+        "8bb12d4cb795ddcb9fe4316e762e156ed7a5c351967a7a04596b55a48a4f969f"
     ),
 }
 

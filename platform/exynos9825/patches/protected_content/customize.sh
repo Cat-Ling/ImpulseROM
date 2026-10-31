@@ -89,7 +89,8 @@ PYEOF
 UNBLACKLIST_EXTRA_DIM_ROUTINES()
 {
     local ROOT="$APKTOOL_DIR/system/priv-app/Accessibility/Accessibility.apk"
-    local TARGET="$ROOT/smali/z7/g.smali"
+    # API 37 (One UI 9) moved the obfuscated helper from z7/g to d8/g.
+    local TARGET="$ROOT/smali/d8/g.smali"
 
     if [ ! -f "$TARGET" ]; then
         LOGE "Samsung Accessibility Extra dim helper not found: $TARGET"

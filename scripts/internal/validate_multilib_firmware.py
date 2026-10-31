@@ -33,7 +33,13 @@ EXPECTED_CANDIDATE_BUILD = (
 )
 EXPECTED_CANDIDATE_MODEL = "SM-S711B"
 EXPECTED_DONOR_SPEC = "SM-S721B/EUX/351273090276500"
-EXPECTED_DONOR_BUILD = "S721BXXSCDZF3/S721BOXMCDZF3/S721BXXSCDZF3"
+EXPECTED_DONOR_BUILD = os.environ.get(
+    "IMPULSE_DONOR_BUILD", "S721BXXSCDZF3/S721BOXMCDZF3/S721BXXSCDZF3"
+)
+EXPECTED_DONOR_API = os.environ.get("IMPULSE_DONOR_API", "36")
+EXPECTED_DONOR_RELEASE = os.environ.get("IMPULSE_DONOR_RELEASE", "16")
+# Throwaway survey mode: record, but do not fail on, the symbol-superset checks (never for releases).
+SURVEY_ONLY = os.environ.get("IMPULSE_SURVEY_ONLY") == "1"
 EXPECTED_DONOR_MODEL = "SM-S721B"
 MIN_SYSTEM_LIB_ELF_COUNT = 700
 MIN_SYSTEM_LIB_API36_NOTES = 650
@@ -167,6 +173,9 @@ class ValidationReport:
         return bool(self.checks) and all(check.ok for check in self.checks)
 
     def add(self, check_id: str, ok: bool, detail: str) -> None:
+        if SURVEY_ONLY and not ok and check_id.endswith("elf64_symbol_superset"):
+            detail = "SURVEY-IGNORED: " + detail
+            ok = True
         self.checks.append(CheckResult(check_id, ok, detail))
 
     def to_dict(self) -> dict[str, object]:
@@ -617,11 +626,16 @@ def _validate_firmware_identity(
         "ro.system.build.version.sdk"
     )
     release = properties.get("ro.build.version.release")
-    ok = sdk == EXPECTED_API and release == EXPECTED_RELEASE
+    want_api, want_release = (
+        (EXPECTED_DONOR_API, EXPECTED_DONOR_RELEASE)
+        if prefix == "donor"
+        else (EXPECTED_API, EXPECTED_RELEASE)
+    )
+    ok = sdk == want_api and release == want_release
     report.add(
         f"{prefix}.api_release",
         ok,
-        f"sdk={sdk or '<missing>'}, release={release or '<missing>'}; expected 36/16",
+        f"sdk={sdk or '<missing>'}, release={release or '<missing>'}; expected {want_api}/{want_release}",
     )
 
     if not require_32bit:

@@ -26,8 +26,8 @@ index 0d24a96c38..6b318ba580 100644
 -
 -    move-result v0
 -
--    if-nez v0, :cond_3a
-+    goto :cond_3a
+-    if-nez v0, :cond_3b
++    goto :cond_3b
  
      const-string/jumbo v0, "StartKnoxGuard"
  

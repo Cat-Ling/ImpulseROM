@@ -8,18 +8,17 @@ Subject: [PATCH] Set FP_FEATURE_SENSOR_IS_OPTICAL to false
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/smali/com/android/server/biometrics/SemBiometricFeature.smali b/smali/com/android/server/biometrics/SemBiometricFeature.smali
-index f67574ad..60b90fcc 100644
 --- a/smali/com/android/server/biometrics/SemBiometricFeature.smali
 +++ b/smali/com/android/server/biometrics/SemBiometricFeature.smali
-@@ -161,7 +161,7 @@
+@@ -169,7 +169,7 @@
  
      sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_IN_DISPLAY_TYPE:Z
  
 -    sput-boolean v2, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_OPTICAL:Z
 +    sput-boolean v3, Lcom/android/server/biometrics/SemBiometricFeature;->FP_FEATURE_SENSOR_IS_OPTICAL:Z
  
-     invoke-static {}, Lcom/samsung/android/feature/SemFloatingFeature;->getInstance()Lcom/samsung/android/feature/SemFloatingFeature;
+     const-string/jumbo v0, "ultrasonic"
  
 -- 
-2.45.2
+2.43.0
 

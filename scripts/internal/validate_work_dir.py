@@ -96,6 +96,8 @@ D2S_HIDL_HEALTH_FILES = (
     "lib64/android.hardware.health@2.1.so",
 )
 
+# The donor platform-native API level: 36 for One UI 8.5, 37 for One UI 9.
+PLATFORM_NATIVE_API = int(os.environ.get("IMPULSE_DONOR_API", "36"))
 D2S_PLATFORM_NATIVE_API36_FILES = (
     "system/system/bin/bootanimation",
     "system/system/bin/surfaceflinger",
@@ -105,20 +107,20 @@ D2S_PLATFORM_NATIVE_API36_FILES = (
 )
 D2S_STAGEFRIGHT_VIDEO_ENCODER_PATH = "system/system/lib64/libstagefright.so"
 D2S_STAGEFRIGHT_VIDEO_ENCODER_SHA256 = (
-    "dd20c5a7b300f6b90c98d3dc1e1957d71a7ef9e59b0e0f58c41151d17b1c189d"
+    "22f6983fbfddfaf16734c2f4ccb9d5954c77509c98170db23dc3efb7a6e2d4cd"
 )
 D2S_STAGEFRIGHT_VIDEO_ENCODER_UNSAFE_PATTERN = bytes.fromhex(
-    "2100805202408052e30314aae41f8052f7430091"
+    "2100805202408052e30314aae41f8052f6430091"
 )
 D2S_STAGEFRIGHT_VIDEO_ENCODER_SAFE_PATTERN = bytes.fromhex(
-    "21008052c21f8052e30314aae41f8052f7430091"
+    "21008052c21f8052e30314aae41f8052f6430091"
 )
 
 D2S_NETBPFLOAD_COMPAT_FILES = {
-    "ethtool": "ca878a914a6f436a5af846d2353dbe44bccf592c527d5b03ac5e6db8e8857b9e",
-    "for-system/clatd": "a8cb1311b422a1bc9b0065d73e6e615b61207d331fd42950e8e4da210c46c528",
-    "netbpfload": "a3507cc9cdf11c7eb4301d71a596a1fb64bc774aefc7185f6a237b8a4435a448",
-    "ot-daemon": "954fd201f94dc49e2d40d9ef90b6d032b177ddf6c85083a5953ebcb915cc0b70",
+    "ethtool": "94e002a189db9f0f605c1c80cdc969b5c7b0a25c72be9ed39c00cf6cb885fc4b",
+    "for-system/clatd": "60afc10c53d7ffd2bc056d2f3ce7a8e16848b53b53a0126870318369844d1b63",
+    "netbpfload": "d50703f96aab9453053f3446ba70fe6df19850349ca5c165cb011f4447a8aa5d",
+    "ot-daemon": "68fbcf063b5cb5653d1636d0cf85b896a7d3e6a842c437df890558e8377edfcc",
 }
 
 D2S_NETBPFLOAD_COMPAT_LABELS = {
@@ -136,11 +138,10 @@ D2S_NETBPFLOAD_COMPAT_METADATA = {
     "ot-daemon": (0, 2000, 755),
 }
 
-D2S_NETBPFLOAD_PATCH_FROM = bytes.fromhex(
-    "280200546808009008614439c8010036"
-)
-D2S_NETBPFLOAD_PATCH_TO = bytes.fromhex(
-    "2802005468080090086144390e000014"
+# API 37 gate sites (25Q4 5.10 and 26Q3 5.15): ldrb flag -> mov wN, #0
+D2S_NETBPFLOAD_PATCHES = (
+    (bytes.fromhex("6a0800d04a914439ca000036"), bytes.fromhex("6a0800d00a008052ca000036")),
+    (bytes.fromhex("680800d008a1443928010036"), bytes.fromhex("680800d00800805228010036")),
 )
 D2S_NETBPFLOAD_BIND_MOUNT = (
     "mount none /system/etc/netbpfload_compat/bin "
@@ -182,7 +183,7 @@ D2S_KNOX_GUARD_CONFIGS = (
     "system/system/etc/irremovable_list.txt",
     "system/system/etc/permissions/platform.xml",
     "system/system/etc/sysconfig/allowed-system-preload-apps.xml",
-    "system/system/etc/sysconfig/required-packages.xml",
+    "system/system/etc/sysconfig/system-required-packages.xml",
     "system/system/etc/sysconfig/safe-mode-allow-list.xml",
 )
 
@@ -243,10 +244,10 @@ def validate_d2s_platform_native_api36(
     for relative in D2S_PLATFORM_NATIVE_API36_FILES:
         path = work_dir / relative
         levels = read_android_api_levels(path) if path.is_file() else set()
-        if levels != {36}:
+        if levels != {PLATFORM_NATIVE_API}:
             errors.append(
                 f"{relative}: Android NT_VERSION={sorted(levels) or '<missing>'}, "
-                "expected=[36]"
+                f"expected=[{PLATFORM_NATIVE_API}]"
             )
     return errors, len(D2S_PLATFORM_NATIVE_API36_FILES)
 
@@ -304,14 +305,15 @@ def validate_d2s_netbpfload_compat(
     loader = compat_bin / "netbpfload"
     if loader.is_file():
         contents = loader.read_bytes()
-        if contents.count(D2S_NETBPFLOAD_PATCH_FROM) != 0:
-            errors.append("NetBpfLoad still contains the Android 25Q4 5.10 hard gate")
-        if contents.count(D2S_NETBPFLOAD_PATCH_TO) != 1:
-            errors.append(
-                "NetBpfLoad does not contain exactly one validated 25Q4 gate bypass"
-            )
+        for gate_from, gate_to in D2S_NETBPFLOAD_PATCHES:
+            if contents.count(gate_from) != 0:
+                errors.append(f"NetBpfLoad still contains kernel gate {gate_from.hex()}")
+            if contents.count(gate_to) != 1:
+                errors.append(
+                    f"NetBpfLoad does not contain exactly one bypass {gate_to.hex()}"
+                )
 
-    init_rc = work_dir / "system/system/etc/init/hw/init.rc"
+    init_rc = work_dir / "system/system/etc/init/netbpfload.rc"
     if not init_rc.is_file():
         errors.append(f"missing Android init configuration: {init_rc}")
     else:

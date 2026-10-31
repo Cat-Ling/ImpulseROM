@@ -45,10 +45,10 @@ if [[ "$TARGET_SINGLE_SYSTEM_IMAGE" == "essi85" ]]; then
     # API 36 donor implementation was confirmed live through system_server.
     STAGEFRIGHT="$WORK_DIR/system/system/lib64/libstagefright.so"
     if [ "$(sha256sum "$STAGEFRIGHT" | cut -d " " -f 1)" != \
-            "6727f7136e0ca304f556fdb96bd9a877e616687a5c2bf3faaad7db7e79acd91c" ]; then
-        ABORT "Unexpected essi85 API 36 libstagefright input"
+            "91dfcd99d441ab1d5aaf00ab59968f4ad83c8961dfe0119310c2fbab6dbc094d" ]; then
+        ABORT "Unexpected API 37 libstagefright input"
     fi
-    LOG "- Retaining the source API 36 libstagefright"
+    LOG "- Retaining the source API 37 libstagefright"
 
     # Samsung's reconfigEncoder4OtherApps passes a 512-byte fread count for a
     # 255-byte stack buffer and then appends a NUL byte at buffer[bytes_read].
@@ -56,12 +56,12 @@ if [[ "$TARGET_SINGLE_SYSTEM_IMAGE" == "essi85" ]]; then
     # reaches that path. Limit the read to 254 bytes so the terminator also
     # remains inside the original buffer.
     HEX_PATCH "$STAGEFRIGHT" \
-        "2100805202408052e30314aae41f8052f7430091" \
-        "21008052c21f8052e30314aae41f8052f7430091" || \
+        "2100805202408052e30314aae41f8052f6430091" \
+        "21008052c21f8052e30314aae41f8052f6430091" || \
         ABORT "Failed to bound Samsung video encoder fread"
     if [ "$(sha256sum "$STAGEFRIGHT" | cut -d " " -f 1)" != \
-            "dd20c5a7b300f6b90c98d3dc1e1957d71a7ef9e59b0e0f58c41151d17b1c189d" ]; then
-        ABORT "Unexpected patched essi85 API 36 libstagefright output"
+            "22f6983fbfddfaf16734c2f4ccb9d5954c77509c98170db23dc3efb7a6e2d4cd" ]; then
+        ABORT "Unexpected patched API 37 libstagefright output"
     fi
 else
     ADD_TO_WORK_DIR "pa3qxxx" "system" \
