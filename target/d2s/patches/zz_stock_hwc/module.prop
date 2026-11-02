@@ -1,0 +1,4 @@
+id=zz_stock_hwc
+name=d2s stock graphics HAL
+author=ImpulseROM
+description=The platform HWC reports one display mode; the stock one reports all three panel resolutions.

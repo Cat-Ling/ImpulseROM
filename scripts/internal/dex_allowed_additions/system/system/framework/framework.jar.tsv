@@ -1,2 +1,3 @@
 logical_index	kind	item
 1	methods	Landroid/app/Activity;->semSetDisablePreviewScreenshots(Z)V
+3	methods	Landroid/os/SystemProperties;->hidesKeystoreType(Ljava/lang/String;)Z

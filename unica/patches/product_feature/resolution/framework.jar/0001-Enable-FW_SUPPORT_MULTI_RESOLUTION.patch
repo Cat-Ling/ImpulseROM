@@ -2,29 +2,29 @@ From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: ImpulseROM <noreply@localhost>
 Subject: [PATCH] Enable FW_SUPPORT_MULTI_RESOLUTION and FW_MULTI_RESOLUTION_POLICY
 
-One UI 8.5 (S721B DZF3) compiles both CoreRune flags to the constant false (v4).
+One UI 8.5 and 9 compiles both CoreRune flags to the constant false (v4).
 Store the constant true (v3) so the multi resolution code in services.jar
 (WindowManagerService, DisplayContent, LogicalDisplayMapper, ...) is active.
 FW_DYNAMIC_RESOLUTION_CONTROL stays false, like upstream UN1CA sixteen on API 36.
 ---
- smali_classes6/com/samsung/android/rune/CoreRune.smali | 3 +-
- 1 file changed
 
 --- a/smali_classes6/com/samsung/android/rune/CoreRune.smali
 +++ b/smali_classes6/com/samsung/android/rune/CoreRune.smali
-@@ -2783,9 +2783,9 @@
-     :goto_a
+@@ -2991,7 +2991,7 @@
+     :goto_b
      sput-boolean v0, Lcom/samsung/android/rune/CoreRune;->FW_TSP_DEADZONE_LARGE_FLIP_COVER:Z
  
 -    sput-boolean v4, Lcom/samsung/android/rune/CoreRune;->FW_SUPPORT_MULTI_RESOLUTION:Z
--
--    sput-boolean v4, Lcom/samsung/android/rune/CoreRune;->FW_MULTI_RESOLUTION_POLICY:Z
 +    sput-boolean v3, Lcom/samsung/android/rune/CoreRune;->FW_SUPPORT_MULTI_RESOLUTION:Z
-+
-+    sput-boolean v3, Lcom/samsung/android/rune/CoreRune;->FW_MULTI_RESOLUTION_POLICY:Z
  
      sput-boolean v4, Lcom/samsung/android/rune/CoreRune;->FW_DYNAMIC_RESOLUTION_CONTROL:Z
  
--- 
-2.43.0
-
+@@ -2999,7 +2999,7 @@
+ 
+     sput-boolean v4, Lcom/samsung/android/rune/CoreRune;->FW_RESOLUTION_POLICY_FOR_SHELL_TRANSITION:Z
+ 
+-    sput-boolean v4, Lcom/samsung/android/rune/CoreRune;->FW_MULTI_RESOLUTION_POLICY:Z
++    sput-boolean v3, Lcom/samsung/android/rune/CoreRune;->FW_MULTI_RESOLUTION_POLICY:Z
+ 
+     sput-boolean v4, Lcom/samsung/android/rune/CoreRune;->FW_DENSITY_MAPPING:Z
+ 

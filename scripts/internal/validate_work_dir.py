@@ -50,11 +50,10 @@ SOURCE_MATCHED_CORE_FILES = (
     "lib64/libepm.so",
     "lib64/libgui.so",
     "lib64/libmdf.so",
-    "lib64/libui.so",
 )
 
-# libstagefright.so is intentionally absent here: the d2s video compatibility
-# patch below validates its exact post-patch hash and instruction sequence.
+# libstagefright.so and libui.so are intentionally absent here: the d2s patches
+# below validate their exact post-patch hashes.
 
 # SamsungCamera used to be pinned here; it now comes from the target firmware and
 # is checked by validate_d2s_stock_camera().
@@ -80,6 +79,10 @@ D2S_SCOPED_PLATFORM_APKS = {
     "com.android.providers.settings": (
         "system/system/priv-app/SettingsProvider/SettingsProvider.apk"
     ),
+    "com.sec.android.sdhms": (
+        "system/system/priv-app/SamsungDeviceHealthManagerService/"
+        "SamsungDeviceHealthManagerService.apk"
+    ),
 }
 D2S_SCOPED_SIGNATURE_SERVICE = (
     "system/system/framework/services.jar"
@@ -98,12 +101,19 @@ D2S_HIDL_HEALTH_FILES = (
 
 # The donor platform-native API level: 36 for One UI 8.5, 37 for One UI 9.
 PLATFORM_NATIVE_API = int(os.environ.get("IMPULSE_DONOR_API", "36"))
+if PLATFORM_NATIVE_API > 36:
+    del D2S_SCOPED_PLATFORM_APKS["com.samsung.android.sead"]
 D2S_PLATFORM_NATIVE_API36_FILES = (
     "system/system/bin/bootanimation",
     "system/system/bin/surfaceflinger",
     "system/system/lib64/libandroid_runtime.so",
     "system/system/lib64/libgui.so",
     "system/system/lib64/libui.so",
+)
+# Three api > 35 gates removed so the d2s gralloc 2.x mapper still loads.
+D2S_LIBUI_PATH = "system/system/lib64/libui.so"
+D2S_LIBUI_SHA256 = (
+    "ef711d73fea58a7b234ff35cf66e2ef8b7bfae37cd8923d8adf8cf751e0bb606"
 )
 D2S_STAGEFRIGHT_VIDEO_ENCODER_PATH = "system/system/lib64/libstagefright.so"
 D2S_STAGEFRIGHT_VIDEO_ENCODER_SHA256 = (
@@ -119,7 +129,7 @@ D2S_STAGEFRIGHT_VIDEO_ENCODER_SAFE_PATTERN = bytes.fromhex(
 D2S_NETBPFLOAD_COMPAT_FILES = {
     "ethtool": "94e002a189db9f0f605c1c80cdc969b5c7b0a25c72be9ed39c00cf6cb885fc4b",
     "for-system/clatd": "60afc10c53d7ffd2bc056d2f3ce7a8e16848b53b53a0126870318369844d1b63",
-    "netbpfload": "d50703f96aab9453053f3446ba70fe6df19850349ca5c165cb011f4447a8aa5d",
+    "netbpfload": "51cb5af47750ea62caf69062123adcdfd6c4663afea4b4e50a799ec64c761118",
     "ot-daemon": "68fbcf063b5cb5653d1636d0cf85b896a7d3e6a842c437df890558e8377edfcc",
 }
 
@@ -142,6 +152,10 @@ D2S_NETBPFLOAD_COMPAT_METADATA = {
 D2S_NETBPFLOAD_PATCHES = (
     (bytes.fromhex("6a0800d04a914439ca000036"), bytes.fromhex("6a0800d00a008052ca000036")),
     (bytes.fromhex("680800d008a1443928010036"), bytes.fromhex("680800d00800805228010036")),
+    # same-filesystem abort, broken by the bind mount
+    (bytes.fromhex("9f0005eb41210054"), bytes.fromhex("9f0005eb1f2003d5")),
+    # program API ranges compared against 36.0, for the 5.4 egress_stats variant
+    (bytes.fromhex("259b432904f540b99f00056b"), bytes.fromhex("259b432904c281529f00056b")),
 )
 D2S_NETBPFLOAD_BIND_MOUNT = (
     "mount none /system/etc/netbpfload_compat/bin "
@@ -250,6 +264,17 @@ def validate_d2s_platform_native_api36(
                 f"expected=[{PLATFORM_NATIVE_API}]"
             )
     return errors, len(D2S_PLATFORM_NATIVE_API36_FILES)
+
+
+def validate_d2s_libui(work_dir: Path) -> list[str]:
+    """Require the libui with the gralloc 2.x mapper fallback restored."""
+    path = work_dir / D2S_LIBUI_PATH
+    if not path.is_file():
+        return [f"missing patched libui: {path}"]
+    actual = hashlib.sha256(path.read_bytes()).hexdigest()
+    if PLATFORM_NATIVE_API > 36 and actual != D2S_LIBUI_SHA256:
+        return [f"{D2S_LIBUI_PATH} hash differs: {actual}, expected {D2S_LIBUI_SHA256}"]
+    return []
 
 
 def validate_d2s_stagefright_video_encoder(
@@ -1044,9 +1069,13 @@ def validate_multilib_snapshot(work_dir: Path, firmware_dir: Path) -> list[str]:
         )
     )
 
+    # A newer donor keeps its own 64-bit APEXes with the multilib payload merged in.
+    merged_apexes = PLATFORM_NATIVE_API > 36
     for relative in (
-        "apex/com.android.runtime.apex",
-        "apex/com.android.i18n.apex",
+        *(() if merged_apexes else (
+            "apex/com.android.runtime.apex",
+            "apex/com.android.i18n.apex",
+        )),
         "bin/bootstrap/linker",
         "bin/bootstrap/linker_asan",
     ):
@@ -1243,6 +1272,7 @@ def main() -> int:
             validate_d2s_stagefright_video_encoder(work_dir)
         )
         errors.extend(video_encoder_errors)
+        errors.extend(validate_d2s_libui(work_dir))
         netbpfload_errors, netbpfload_compat_count = (
             validate_d2s_netbpfload_compat(work_dir)
         )

@@ -1,17 +1,4 @@
 TARGET_COMPAT_SOURCE="$FW_DIR/$TARGET_FIRMWARE_PATH"
-# The port boots at native 1440x3040. Stock d2s supplies 420 for its
-# lower-resolution mode and ro.sf.init.lcd_density=560 for native resolution.
-# The API 36 donor does not apply that legacy initialization, leaving a tiny
-# UI on a clean install. Use the target's native-resolution density without
-# overriding any user's persisted display-size preference in /data.
-TARGET_NATIVE_DENSITY="$(sed -n 's/^ro.sf.init.lcd_density=//p' \
-    "$TARGET_COMPAT_SOURCE/vendor/build.prop")"
-if [[ "$TARGET_NATIVE_DENSITY" != "560" ]]; then
-    ABORT "Unexpected d2s native display density: $TARGET_NATIVE_DENSITY"
-fi
-SET_PROP "vendor" "ro.sf.lcd_density" "$TARGET_NATIVE_DENSITY"
-unset TARGET_NATIVE_DENSITY
-
 TARGET_FCM_LEVEL="$(sed -n 's/.*target-level="\([^"]*\)".*/\1/p' \
     "$TARGET_COMPAT_SOURCE/vendor/etc/vintf/manifest.xml" | head -n 1)"
 
@@ -283,9 +270,15 @@ BPF_LOADER="$BPF_COMPAT_BIN/netbpfload"
 # baseline, so clear only these two release flags at their gate sites:
 # "ldrb wN, [xN, #flag]" becomes "mov wN, #0" and the following tbz takes the
 # normal pass path with the same register state as on an older platform.
+# Android 17 also aborts when a BPF object is not on the loader's filesystem,
+# which the bind mount below always causes, so drop that branch. And netd needs
+# prog_netd_egress_stats, whose 5.4 variant only exists for API < 36.1: compare
+# program API ranges against 36.0, not 37 (mov w4, #3600).
 for BPF_GATE in \
         "6a0800d04a914439ca000036 6a0800d00a008052ca000036" \
-        "680800d008a1443928010036 680800d00800805228010036"; do
+        "680800d008a1443928010036 680800d00800805228010036" \
+        "9f0005eb41210054 9f0005eb1f2003d5" \
+        "259b432904f540b99f00056b 259b432904c281529f00056b"; do
     BPF_FROM="${BPF_GATE% *}"
     BPF_TO="${BPF_GATE#* }"
     BPF_MATCH_COUNT="$(xxd -p "$BPF_LOADER" | tr -d ' \n' | grep -o "$BPF_FROM" | wc -l)"
@@ -296,9 +289,37 @@ for BPF_GATE in \
         ABORT "Failed to patch the API 37 NetBpfLoad kernel gate $BPF_FROM"
 done
 if [ "$(sha256sum "$BPF_LOADER" | cut -d " " -f 1)" != \
-        "d50703f96aab9453053f3446ba70fe6df19850349ca5c165cb011f4447a8aa5d" ]; then
+        "51cb5af47750ea62caf69062123adcdfd6c4663afea4b4e50a799ec64c761118" ]; then
     ABORT "Patched NetBpfLoad hash mismatch"
 fi
+
+# ConnectivityService aborts system_server when two BPF ring buffers are missing,
+# and they need kernel 5.8+. Local network access metrics now poll /dev/null via a
+# dup of fd 0, and the loopback event poller never starts.
+BPF_COMPAT_LIB="$BPF_COMPAT_ROOT/lib64"
+BPF_CONNECTIVITY="$BPF_COMPAT_LIB/libservice-connectivity.so"
+mkdir -p "$BPF_COMPAT_LIB"
+EVAL "debugfs -R \"dump -p /lib64/libservice-connectivity.so $BPF_CONNECTIVITY\" \"$BPF_TMP_ROOT/apex_payload.img\""
+if [ "$(sha256sum "$BPF_CONNECTIVITY" | cut -d " " -f 1)" != \
+        "7e23e345bb832ccda5ff0b1b2dfe6d5bab243e82b1451d5285f8806a11159382" ]; then
+    ABORT "Tethering APEX input hash changed: /lib64/libservice-connectivity.so"
+fi
+HEX_PATCH "$BPF_CONNECTIVITY" "f21b0094001840b9c1808052" "1f2003d5e0031f2ac1808052" || \
+    ABORT "Failed to patch nativeGetLocalNetAccessRingbufFd"
+HEX_PATCH "$BPF_CONNECTIVITY" "3f2303d5ff4301d1fd7b02a9f51b00f9f44f04a9fd83009155d03bd5530000d0" "c0035fd6ff4301d1fd7b02a9f51b00f9f44f04a9fd83009155d03bd5530000d0" || \
+    ABORT "Failed to patch LoopbackEventHandler::Start"
+HEX_PATCH "$BPF_CONNECTIVITY" "3f2303d5fd7bbfa9fd0300911f2003d568f60410" "c0035fd6fd7bbfa9fd0300911f2003d568f60410" || \
+    ABORT "Failed to patch LoopbackEventHandler::Stop"
+if [ "$(sha256sum "$BPF_CONNECTIVITY" | cut -d " " -f 1)" != \
+        "15f6410c48617e957f5c9902f96c0dff9d49763fb4598f656c145c6247af28d9" ]; then
+    ABORT "Patched libservice-connectivity hash mismatch"
+fi
+SET_METADATA "system" "system/etc/netbpfload_compat/lib64" \
+    0 2000 755 "u:object_r:system_file:s0"
+SET_METADATA "system" "system/etc/netbpfload_compat/lib64/libservice-connectivity.so" \
+    0 0 644 "u:object_r:system_lib_file:s0"
+# The policy lets init bind over directories only; this bind targets a file.
+echo "(allow init system_lib_file (file (mounton)))" >> "$WORK_DIR/system/system/etc/selinux/plat_sepolicy.cil"
 
 BPF_INIT_RC="$WORK_DIR/system/system/etc/init/netbpfload.rc"
 BPF_TRIGGER_COUNT="$(grep -c '^[[:space:]]*exec_start bpfloader[[:space:]]*$' "$BPF_INIT_RC")"
@@ -307,6 +328,7 @@ if [ "$BPF_TRIGGER_COUNT" != "1" ]; then
 fi
 sed -i '/^[[:space:]]*exec_start bpfloader[[:space:]]*$/i\
     # d2s: retain the APEX path/namespace while bypassing only its 5.10/5.15 hard gates.\
+    mount none /system/etc/netbpfload_compat/lib64/libservice-connectivity.so /apex/com.android.tethering/lib64/libservice-connectivity.so bind\
     mount none /system/etc/netbpfload_compat/bin /apex/com.android.tethering/bin bind' \
     "$BPF_INIT_RC"
 
@@ -321,6 +343,57 @@ sed -i \
     -e 's|^/sys/kernel/clat/xlat_plat[[:space:]].*|/sys/kernel/clat xlat_plat 0660 clat clat|' \
     -e '/^\/sys\/bus\/iio\/devices\/iio:device\*[[:space:]][[:space:]]*0664[[:space:]][[:space:]]*system[[:space:]][[:space:]]*radio[[:space:]]*$/d' \
     "$WORK_DIR/vendor/ueventd.rc"
+
+# Android 17 removed /dev/ion from its contexts and the gralloc 2.x/3.x mapper
+# fallback from libui (api > 35 gates). The d2s vendor only has mapper 2.0 on ION.
+LOG_STEP_IN "- Restoring ION and the gralloc 2.x mapper"
+echo "/dev/ion u:object_r:ion_device:s0" >> "$WORK_DIR/system/system/etc/selinux/plat_file_contexts"
+LIBUI="$WORK_DIR/system/system/lib64/libui.so"
+if [ "$(sha256sum "$LIBUI" | cut -d " " -f 1)" != \
+        "4bc342521a9745c3c5fa7b8bc9987e8437a043ef16bfb4a2e1f98ec6ecbf0122" ]; then
+    ABORT "libui.so input hash changed"
+fi
+HEX_PATCH "$LIBUI" "8bbc00941f8c0071ac030054" "8bbc00941f8c00711f2003d5" || ABORT "Failed to patch GraphicBufferMapper"
+HEX_PATCH "$LIBUI" "9cb900941f8c0071ac050054" "9cb900941f8c00711f2003d5" || ABORT "Failed to patch GraphicBuffer"
+HEX_PATCH "$LIBUI" "9a2400941f8c00716c000054" "9a2400941f8c00711f2003d5" || ABORT "Failed to patch GraphicBufferMapper::preloadHal"
+if [ "$(sha256sum "$LIBUI" | cut -d " " -f 1)" != \
+        "ef711d73fea58a7b234ff35cf66e2ef8b7bfae37cd8923d8adf8cf751e0bb606" ]; then
+    ABORT "Patched libui.so hash mismatch"
+fi
+unset LIBUI
+LOG_STEP_OUT
+
+# SDHMS decrypts its thermal policy with SHA-256(SIOP_POLICY_FILENAME). The donor's
+# assets only decrypt under the S24 FE name, whose policy crash-loops SDHMS here, so
+# the Note10+ name yields garbage and the "Fails to parse DEFAULT policy XML" warning.
+# Ship the stock Note10+ policies under the Note10+ key instead.
+LOG_STEP_IN "- Installing the stock Note10+ thermal policy"
+SDHMS_APK="$WORK_DIR/system/system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk"
+SDHMS_STOCK_APK="$FW_DIR/$(cut -d "/" -f 1,2 <<< "$TARGET_FIRMWARE" | tr "/" "_")/system/system/priv-app/SamsungDeviceHealthManagerService/SamsungDeviceHealthManagerService.apk"
+SDHMS_KEY="$(printf '%s' siop_davinci2_exynos9820 | sha256sum | cut -d " " -f 1)"
+SDHMS_TMP="$(mktemp -d "$TMP_DIR/sdhms-policy.XXXXXX")"
+mkdir -p "$SDHMS_TMP/assets"
+EVAL "unzip -j \"$SDHMS_STOCK_APK\" res/raw/siop_default.xml res/raw/siop_davinci2_exynos9820.xml -d \"$SDHMS_TMP\""
+# The Android 17 parser aborts on overheat types it no longer knows.
+sed -i '/<DEX /d' "$SDHMS_TMP/siop_default.xml"
+for SDHMS_POLICY in "siop_default siop_default.xml" "siop_model siop_davinci2_exynos9820.xml"; do
+    SDHMS_ASSET="${SDHMS_POLICY% *}"
+    SDHMS_SOURCE="${SDHMS_POLICY#* }"
+    SDHMS_IV="$(openssl rand -hex 16)"
+    xxd -r -p <<< "$SDHMS_IV" > "$SDHMS_TMP/assets/$SDHMS_ASSET"
+    openssl enc -aes-256-cbc -K "$SDHMS_KEY" -iv "$SDHMS_IV" -in "$SDHMS_TMP/$SDHMS_SOURCE" >> "$SDHMS_TMP/assets/$SDHMS_ASSET" || \
+        ABORT "Failed to encrypt $SDHMS_SOURCE"
+done
+(cd "$SDHMS_TMP" && zip -q -X -0 "$SDHMS_APK" assets/siop_default assets/siop_model) || \
+    ABORT "Failed to replace the SDHMS policy assets"
+CERT_PREFIX="aosp"
+$ROM_IS_OFFICIAL && CERT_PREFIX="impulse"
+EVAL "signapk \"$SRC_DIR/security/${CERT_PREFIX}_platform.x509.pem\" \"$SRC_DIR/security/${CERT_PREFIX}_platform.pk8\" \"$SDHMS_APK\" \"$SDHMS_TMP/signed.apk\"" || \
+    ABORT "Failed to sign SDHMS"
+mv -f "$SDHMS_TMP/signed.apk" "$SDHMS_APK"
+rm -rf "$SDHMS_TMP"
+unset SDHMS_APK SDHMS_STOCK_APK SDHMS_KEY SDHMS_TMP SDHMS_POLICY SDHMS_ASSET SDHMS_SOURCE SDHMS_IV CERT_PREFIX
+LOG_STEP_OUT
 
 unset TARGET_COMPAT_SOURCE TARGET_FCM_LEVEL TARGET_FCM_MATRIX
 unset TARGET_FCM_MATRIX_LEVEL TARGET_HEALTH_FILE

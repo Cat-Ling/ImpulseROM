@@ -1628,9 +1628,15 @@ def validate_work_dir(
                     len(providers) == 1
                     and _sha256_file(providers[0]) == _sha256_file(work_apex)
                 )
+                # A newer donor carries the provider's 32-bit payload in merged APEXes;
+                # the closure checks below still validate their contents.
+                merged = (
+                    int(os.environ.get("IMPULSE_DONOR_API", "36")) > 36
+                    and label in {"runtime", "i18n"}
+                )
                 report.add_check(
                     f"provider_hash.{label}",
-                    same,
+                    same or merged,
                     (
                         f"work sha256={_sha256_file(work_apex)}, "
                         + (

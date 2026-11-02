@@ -1,0 +1,4 @@
+id=debug_adb
+name=Debug: adb at boot
+author=ImpulseROM
+description=Test builds only. Enables adb during boot with a pre-authorized host key.

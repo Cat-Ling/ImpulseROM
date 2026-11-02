@@ -1,0 +1,3 @@
+logical_index	kind	item
+1	methods	Landroid/app/ActivityThread;->currentPackageName()Ljava/lang/String;
+1	types	Landroid/app/ActivityThread;

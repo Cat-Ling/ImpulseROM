@@ -38,8 +38,6 @@ EXPECTED_DONOR_BUILD = os.environ.get(
 )
 EXPECTED_DONOR_API = os.environ.get("IMPULSE_DONOR_API", "36")
 EXPECTED_DONOR_RELEASE = os.environ.get("IMPULSE_DONOR_RELEASE", "16")
-# Throwaway survey mode: record, but do not fail on, the symbol-superset checks (never for releases).
-SURVEY_ONLY = os.environ.get("IMPULSE_SURVEY_ONLY") == "1"
 EXPECTED_DONOR_MODEL = "SM-S721B"
 MIN_SYSTEM_LIB_ELF_COUNT = 700
 MIN_SYSTEM_LIB_API36_NOTES = 650
@@ -173,9 +171,6 @@ class ValidationReport:
         return bool(self.checks) and all(check.ok for check in self.checks)
 
     def add(self, check_id: str, ok: bool, detail: str) -> None:
-        if SURVEY_ONLY and not ok and check_id.endswith("elf64_symbol_superset"):
-            detail = "SURVEY-IGNORED: " + detail
-            ok = True
         self.checks.append(CheckResult(check_id, ok, detail))
 
     def to_dict(self) -> dict[str, object]:
@@ -1392,22 +1387,24 @@ def validate_firmware(
             ),
         )
 
-        _validate_symbol_superset(
-            report,
-            "runtime.elf64_symbol_superset",
-            candidate_runtime,
-            donor_runtime,
-            toolchain,
-            symbol_reader,
-        )
-        _validate_symbol_superset(
-            report,
-            "i18n.elf64_symbol_superset",
-            candidate_i18n,
-            donor_i18n,
-            toolchain,
-            symbol_reader,
-        )
+        # Above API 36 the APEXes are merged and keep the donor's 64-bit ELFs, so there is nothing to compare.
+        if int(EXPECTED_DONOR_API) <= 36:
+            _validate_symbol_superset(
+                report,
+                "runtime.elf64_symbol_superset",
+                candidate_runtime,
+                donor_runtime,
+                toolchain,
+                symbol_reader,
+            )
+            _validate_symbol_superset(
+                report,
+                "i18n.elf64_symbol_superset",
+                candidate_i18n,
+                donor_i18n,
+                toolchain,
+                symbol_reader,
+            )
 
     return report
 

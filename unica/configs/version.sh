@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-ROM_VERSION="v1.0-oneui9-alpha1-dev"
+ROM_VERSION="OneUI9-alpha1"
 
 ROM_COMMIT="@$(git rev-parse --short HEAD)"
 if ! git diff --quiet HEAD --ignore-submodules=dirty -- || \

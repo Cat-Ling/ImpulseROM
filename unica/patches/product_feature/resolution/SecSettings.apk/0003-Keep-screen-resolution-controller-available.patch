@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] Keep the Screen resolution selector available
+
+The S24 FE build also folds SecScreenResolutionSingleChoiceController.getAvailabilityStatus()
+to 3 (UNSUPPORTED_ON_DEVICE), which hides the selector even without the removal in
+ScreenResolutionFragment. Return 0 (AVAILABLE) on QHD devices.
+---
+
+--- a/smali_classes3/com/samsung/android/settings/display/controller/SecScreenResolutionSingleChoiceController.smali
++++ b/smali_classes3/com/samsung/android/settings/display/controller/SecScreenResolutionSingleChoiceController.smali
+@@ -522,7 +522,7 @@
+ 
+     sget-object p0, Lcom/samsung/android/settings/Rune;->COMMON_CONFIG_PACKAGE_NAME_SMART_MANAGER:Ljava/lang/String;
+ 
+-    const/4 p0, 0x3
++    const/4 p0, 0x0
+ 
+     return p0
+ .end method

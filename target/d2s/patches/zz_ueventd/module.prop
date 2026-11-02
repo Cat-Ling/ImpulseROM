@@ -1,0 +1,4 @@
+id=zz_ueventd
+name=d2s ueventd rules
+author=ImpulseROM
+description=Android 17 ignores /vendor/ueventd.rc: merge its rules into the system ones

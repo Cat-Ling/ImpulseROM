@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] KnoxPatch: report no Knox API to Samsung Health
+
+From the SamsungPropsHooks idea in KnoxPatch (Salvo Giangreco, Ocin4ever), limited to Samsung Health.
+---
+
+--- a/smali/com/samsung/android/knox/EnterpriseDeviceManager.smali
++++ b/smali/com/samsung/android/knox/EnterpriseDeviceManager.smali
+@@ -587,6 +587,23 @@
+ .method public static greylist getAPILevel()I
+     .locals 2
+ 
++    invoke-static {}, Landroid/app/ActivityThread;->currentPackageName()Ljava/lang/String;
++
++    move-result-object v0
++
++    const-string v1, "com.sec.android.app.shealth"
++
++    invoke-virtual {v1, v0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result v0
++
++    if-eqz v0, :cond_real
++
++    const/4 v0, -0x1
++
++    return v0
++
++    :cond_real
+     :try_start_0
+     invoke-static {}, Lcom/samsung/android/knox/EdmUtils;->getAPILevelForInternal()I
+ 

@@ -516,11 +516,13 @@ class PropertyContextValidationTest(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             contents = f"compat:{relative}".encode()
             if relative == "netbpfload":
-                contents += VALIDATOR.D2S_NETBPFLOAD_PATCH_TO
+                contents += b"".join(
+                    gate_to for _, gate_to in VALIDATOR.D2S_NETBPFLOAD_PATCHES
+                )
             path.write_bytes(contents)
             hashes[relative] = hashlib.sha256(contents).hexdigest()
 
-        init_rc = self.work_dir / "system/system/etc/init/hw/init.rc"
+        init_rc = self.work_dir / "system/system/etc/init/netbpfload.rc"
         init_rc.parent.mkdir(parents=True, exist_ok=True)
         init_rc.write_text(
             "on load-bpf-programs\n"
@@ -570,12 +572,12 @@ class PropertyContextValidationTest(unittest.TestCase):
             / "system/system/etc/netbpfload_compat/bin/netbpfload"
         )
         contents = loader.read_bytes().replace(
-            VALIDATOR.D2S_NETBPFLOAD_PATCH_TO,
-            VALIDATOR.D2S_NETBPFLOAD_PATCH_FROM,
+            VALIDATOR.D2S_NETBPFLOAD_PATCHES[0][1],
+            VALIDATOR.D2S_NETBPFLOAD_PATCHES[0][0],
         )
         loader.write_bytes(contents)
         hashes["netbpfload"] = hashlib.sha256(contents).hexdigest()
-        init_rc = self.work_dir / "system/system/etc/init/hw/init.rc"
+        init_rc = self.work_dir / "system/system/etc/init/netbpfload.rc"
         init_rc.write_text(
             "on load-bpf-programs\n"
             "    exec_start bpfloader\n"

@@ -20,6 +20,29 @@ if [[ $TARGET_SINGLE_SYSTEM_IMAGE == "qssi" || \
     system/bin/bootstrap/linker
     system/bin/bootstrap/linker_asan
     "
+    if [ "${IMPULSE_DONOR_API:-36}" -gt 36 ]; then
+        # The multilib donor is one Android release behind: its 64-bit bionic and ICU
+        # cannot run the donor system, so only add its 32-bit payload to the donor APEXes.
+        BLOBS_LIST="
+        system/bin/bootstrap/linker
+        system/bin/bootstrap/linker_asan
+        "
+        CERT_PREFIX="aosp"
+        $ROM_IS_OFFICIAL && CERT_PREFIX="impulse"
+        for apex in com.android.i18n.apex com.android.runtime.apex
+        do
+            EVAL "python3 \"$SRC_DIR/scripts/internal/merge_multilib_apex.py\" \
+                \"$WORK_DIR/system/system/apex/$apex\" \
+                \"$FW_DIR/$(cut -d "/" -f 1,2 <<< "$MULTILIB_SOURCE" | tr "/" "_")/system/system/apex/$apex\" \
+                \"$WORK_DIR/system/system/apex/$apex.merged\" \
+                avbtool signapk \
+                \"$SRC_DIR/security/${CERT_PREFIX}_platform.x509.pem\" \
+                \"$SRC_DIR/security/${CERT_PREFIX}_platform.pk8\"" || \
+                ABORT "Failed to merge the multilib payload into $apex"
+            mv -f "$WORK_DIR/system/system/apex/$apex.merged" "$WORK_DIR/system/system/apex/$apex"
+        done
+        unset CERT_PREFIX apex
+    fi
     if [[ "$TARGET_SINGLE_SYSTEM_IMAGE" != "essi85" ]]; then
         # The legacy Android 15 source module carried its matching tzdata APEX.
         # The essi85 donor already supplies an API 36 architecture-neutral one.
