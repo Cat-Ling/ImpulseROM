@@ -7,8 +7,9 @@ full credits list and `LICENSE` for the complete license text.
 ## Impulse ROM
 
 Impulse ROM adapts EternityROM's build system and One UI/Android base to the
-Samsung Galaxy Note10+ Exynos (`d2s` / `SM-N975F`), tracking a newer One UI
-8.5 / Android 16 source than upstream currently ships for this device.
+Samsung Galaxy Note10+ Exynos (`d2s` / `SM-N975F`), tracking newer One UI 8.5 /
+Android 16 and One UI 9 / Android 17 sources than upstream currently ships for
+this device.
 Impulse-specific changes include (non-exhaustively; see
 `docs/source-provenance.md` for public commit references and release limitations):
 device/source configuration for the `essi85` profile, DEX-inventory and
@@ -45,7 +46,8 @@ unmodified portions.
 
 ## Samsung
 
-Samsung firmware and proprietary device software are used solely as external
-build inputs. They are not Impulse ROM source code, are not redistributed by
-this repository, and are not represented as original Impulse work anywhere
-in this project. See `docs/proprietary-files.md`.
+Samsung firmware and proprietary device software are build inputs. They are not
+Impulse ROM source code and are not represented as original Impulse work anywhere
+in this project. Some proprietary files are present in this repository (for
+example under `platform/exynos9825/patches/`) and in the released ZIPs; they are
+not covered by this project's GPLv3 licence. See `docs/proprietary-files.md`.

@@ -96,6 +96,21 @@ as `v1.0-alpha2` or claim that it is the exact source of the September ZIP.
 The next newly built release should use a distinct version (for example
 `v1.0-alpha3`) and record its exact clean source commit and submodule revisions.
 
+### Impulse ROM OneUI9 — Alpha 1
+
+| Field | Value |
+| --- | --- |
+| ROM version | `OneUI9-alpha1` |
+| Distributed filename | `ImpulseROM_d2s_OneUI9-alpha1_20261102.zip` |
+| Build date | 2026-11-02 |
+| ZIP size | 6,141,227,412 bytes |
+| ROM SHA-256 | `853f0048296258b35b281332eb456cf18415c8460d98fcc54feb59b81a3d0cd9` |
+| Impulse source | Tag `v1.0-oneui9-alpha1`, commit `783909f0bc5854830a9a593c11077cc4e47f2fb7`, branch `feature/oneui9`. Built from the committed tree in a local checkout, not from the container build. |
+| Firmware inputs | Source `S721BXXSFEZJ1`, multilib `S711BXXSGGZF2`, target `N975FXXS9HWHA` |
+| Kernel release used | ExtremeKRNL `v2.0` (see [kernel-source.md](kernel-source.md)) |
+| Exact in-kernel KernelSU-Next commit | Unresolved; see [kernel-source.md](kernel-source.md). |
+| Device test status | Booted on the developer's SM-N975F. TWRP printed `Unable to format to remove encryption` during the scripted Format Data, so a boot on freshly formatted data is not confirmed. |
+
 ### Future releases
 
 For every release going forward, fill in this table from a clean, tagged
