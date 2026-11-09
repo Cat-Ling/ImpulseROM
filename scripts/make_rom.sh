@@ -325,10 +325,10 @@ if [ -s "$PATCH_DRIFT_REPORT" ]; then
     LOGW "These are the feature-restore backlog; see $PATCH_DRIFT_REPORT"
 fi
 
-CRITICAL_KNOX_GUARD_PATCH="target/d2s/patches/android16_compat/smali/system/framework/services.jar/0001-Disable-unsupported-KnoxGuard-service.patch"
+CRITICAL_KNOX_GUARD_PATCH="target/$TARGET_CODENAME/patches/android16_compat/smali/system/framework/services.jar/0001-Disable-unsupported-KnoxGuard-service.patch"
 if [ -s "$PATCH_DRIFT_REPORT" ] && \
         grep -Fq "$CRITICAL_KNOX_GUARD_PATCH" "$PATCH_DRIFT_REPORT"; then
-    LOGE "Critical d2s KnoxGuard compatibility patch drifted; refusing to package"
+    LOGE "Critical $TARGET_CODENAME KnoxGuard compatibility patch drifted; refusing to package"
     exit 1
 fi
 
@@ -338,11 +338,11 @@ if [[ "$ENABLE_SCOPED_PLATFORM_APK_REBUILDS" == "true" && -s "$PATCH_DRIFT_REPOR
         "unica/patches/product_feature/fingerprint/BiometricSetting.apk/0001-Set-FP_FEATURE_SENSOR_IS_OPTICAL-to-false.patch"
         "unica/patches/product_feature/fingerprint/SystemUI.apk/0001-Set-SECURITY_FINGERPRINT_IN_DISPLAY_OPTICAL-to-false.patch"
         "unica/patches/product_feature/mdnie/hw/EnvironmentAdaptiveDisplay.apk/0001-Fix-framework-resource-IDs-for-API-36.patch"
-        "target/d2s/patches/android16_compat/smali/system/framework/services.jar/0002-Allow-Secure-Folder-on-unlocked-d2s.patch"
+        "target/$TARGET_CODENAME/patches/android16_compat/smali/system/framework/services.jar/0002-Allow-Secure-Folder-on-unlocked-d2s.patch"
     )
     for CRITICAL_SCOPED_PATCH in "${CRITICAL_SCOPED_PATCHES[@]}"; do
         if grep -Fq "$CRITICAL_SCOPED_PATCH" "$PATCH_DRIFT_REPORT"; then
-            LOGE "Critical d2s scoped-platform patch drifted; refusing to package: $CRITICAL_SCOPED_PATCH"
+            LOGE "Critical $TARGET_CODENAME scoped-platform patch drifted; refusing to package: $CRITICAL_SCOPED_PATCH"
             exit 1
         fi
     done
@@ -375,7 +375,7 @@ if [[ "$TARGET_SINGLE_SYSTEM_IMAGE" == "essi85" ]]; then
         )
     fi
 fi
-if [[ "$TARGET_CODENAME" == "d2s" && "$TARGET_SINGLE_SYSTEM_IMAGE" == "essi85" ]]; then
+if [[ ("$TARGET_CODENAME" == "d2s" || "$TARGET_CODENAME" == "d2x") && "$TARGET_SINGLE_SYSTEM_IMAGE" == "essi85" ]]; then
     WORK_VALIDATOR_ARGS+=(
         --target-firmware-dir
         "$FW_DIR/$TARGET_FIRMWARE_PATH"
@@ -384,17 +384,19 @@ if [[ "$TARGET_CODENAME" == "d2s" && "$TARGET_SINGLE_SYSTEM_IMAGE" == "essi85" ]
 fi
 python3 "$SRC_DIR/scripts/internal/validate_work_dir.py" \
     "${WORK_VALIDATOR_ARGS[@]}" || exit 1
-if [[ "$TARGET_CODENAME" == "d2s" && "$TARGET_SINGLE_SYSTEM_IMAGE" == "essi85" ]]; then
+if [[ ("$TARGET_CODENAME" == "d2s" || "$TARGET_CODENAME" == "d2x") && "$TARGET_SINGLE_SYSTEM_IMAGE" == "essi85" ]]; then
     python3 "$SRC_DIR/scripts/internal/validate_vintf_compat.py" \
         "$WORK_DIR" || exit 1
 
-    python3 "$SRC_DIR/scripts/internal/validate_audio_contract.py" \
-        "$WORK_DIR" \
-        --source-firmware-dir "$FW_DIR/$SOURCE_FIRMWARE_PATH" \
-        --multilib-firmware-dir \
-        "$FW_DIR/$(GET_FIRMWARE_DIR_NAME "$MULTILIB_FIRMWARE")" \
-        --target-firmware-dir "$FW_DIR/$TARGET_FIRMWARE_PATH" \
-        --json-output "$OUT_DIR/audio_contract_validation.json" || exit 1
+    if [[ "$TARGET_CODENAME" == "d2s" ]]; then
+        python3 "$SRC_DIR/scripts/internal/validate_audio_contract.py" \
+            "$WORK_DIR" \
+            --source-firmware-dir "$FW_DIR/$SOURCE_FIRMWARE_PATH" \
+            --multilib-firmware-dir \
+            "$FW_DIR/$(GET_FIRMWARE_DIR_NAME "$MULTILIB_FIRMWARE")" \
+            --target-firmware-dir "$FW_DIR/$TARGET_FIRMWARE_PATH" \
+            --json-output "$OUT_DIR/audio_contract_validation.json" || exit 1
+    fi
 
     ELF32_VALIDATOR_ARGS=(
         "$WORK_DIR"

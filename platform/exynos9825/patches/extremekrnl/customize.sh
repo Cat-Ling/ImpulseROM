@@ -22,6 +22,11 @@ REPLACE_KERNEL_BINARIES()
             d2s)
                 ZIP_SHA256="91309ca7b6bce0edd99734b798ef23faf1e0eb2bd34d3055917e39309894eaba"
                 ;;
+            d2x)
+                # v2.0 was only tagged for d1 and d2s; v1.0 contains the verified d2x release.
+                ZIP_LINK="$EXTREMEKRNL_REPO/download/v1.0/ExtremeKRNL-Nexus-${TARGET_CODENAME}.zip"
+                ZIP_SHA256="fc8094968a84afbe16745a28a5ff58b204a558d1988c5f5f5894c15a78e71cb7"
+                ;;
             *)
                 LOGE "No pinned ExtremeKRNL checksum for $TARGET_CODENAME"
                 exit 1
