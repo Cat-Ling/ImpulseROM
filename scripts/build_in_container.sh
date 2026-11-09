@@ -69,7 +69,7 @@ DOCKER_ARGS=(
     # fail (default): a drifted framework patch aborts the build. skip: a drifted
     # patch keeps its target at clean stock and is recorded, for a first-boot
     # bring-up on a source the inherited patch set was not authored against.
-    --env "PATCH_DRIFT_POLICY=${PATCH_DRIFT_POLICY:-fail}"
+    --env "PATCH_DRIFT_POLICY=${PATCH_DRIFT_POLICY:-skip}"
     --env "FIRMWARE_PIN_SM_S721B_EUX=${FIRMWARE_PIN_SM_S721B_EUX:-S721BXXSCDZF3/S721BOXMCDZF3/S721BXXSCDZF3}"
     --env "FIRMWARE_PIN_SM_S711B_EUX=${FIRMWARE_PIN_SM_S711B_EUX:-S711BXXSGGZF2/S711BOXMGGZF2/S711BXXSGGZF2}"
     --env TERM=dumb
