@@ -59,9 +59,9 @@ priv-app/FamilyLinkParentalControls
 priv-app/SearchSelector
 "
 
-# Keep the donor Gmail package in the d2s Impulse profile. Other targets keep
+# Keep the donor Gmail package in the d2s/d2x Impulse profile. Other targets keep
 # the upstream debloat policy; no live download or APK re-signing is needed.
-if [[ "$TARGET_CODENAME" != "d2s" || "$TARGET_SINGLE_SYSTEM_IMAGE" != "essi85" ]]; then
+if [[ ("$TARGET_CODENAME" != "d2s" && "$TARGET_CODENAME" != "d2x") || "$TARGET_SINGLE_SYSTEM_IMAGE" != "essi85" ]]; then
     PRODUCT_DEBLOAT+="
 app/Gmail2
 "

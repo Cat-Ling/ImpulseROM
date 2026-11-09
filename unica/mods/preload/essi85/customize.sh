@@ -1,7 +1,7 @@
 # Samsung Notes is absent from the donor image. Do not enable the legacy
 # module's unpinned downloads of unrelated apps for this device.
-if [[ "$TARGET_CODENAME" != "d2s" ]]; then
-    ABORT "Impulse bundled apps are only validated for d2s" || return 1
+if [[ "$TARGET_CODENAME" != "d2s" && "$TARGET_CODENAME" != "d2x" ]]; then
+    ABORT "Impulse bundled apps are only validated for d2s/d2x" || return 1
 fi
 
 NOTES_VERSION="4.4.45.37"
