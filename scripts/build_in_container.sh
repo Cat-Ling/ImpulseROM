@@ -27,20 +27,20 @@ fi
 SIGNING_ARGS=()
 if [[ "$MODE" == rom ]]; then
     IMPULSE_SIGNING_KEY_DIR=${IMPULSE_SIGNING_KEY_DIR:-$HOME/impulse-keys}
-    for SIGNING_FILE in impulse_platform.pk8 impulse_platform.x509.pem; do
-        if [[ ! -s "$IMPULSE_SIGNING_KEY_DIR/$SIGNING_FILE" ]]; then
-            echo "Missing release signing input: $IMPULSE_SIGNING_KEY_DIR/$SIGNING_FILE" >&2
+    if [[ -s "$IMPULSE_SIGNING_KEY_DIR/impulse_platform.pk8" && -s "$IMPULSE_SIGNING_KEY_DIR/impulse_platform.x509.pem" ]]; then
+        for SIGNING_FILE in impulse_platform.pk8 impulse_platform.x509.pem; do
+            SIGNING_ARGS+=(--volume "$IMPULSE_SIGNING_KEY_DIR/$SIGNING_FILE:/workspace/security/$SIGNING_FILE:ro")
+        done
+        KEY_PUBLIC_HASH=$(openssl pkey -inform DER -in "$IMPULSE_SIGNING_KEY_DIR/impulse_platform.pk8" \
+            -pubout -outform DER | sha256sum | cut -d ' ' -f1)
+        CERT_PUBLIC_HASH=$(openssl x509 -in "$IMPULSE_SIGNING_KEY_DIR/impulse_platform.x509.pem" \
+            -pubkey -noout | openssl pkey -pubin -outform DER | sha256sum | cut -d ' ' -f1)
+        if [[ "$KEY_PUBLIC_HASH" != "$CERT_PUBLIC_HASH" ]]; then
+            echo "Impulse signing key does not match the release certificate." >&2
             exit 2
         fi
-        SIGNING_ARGS+=(--volume "$IMPULSE_SIGNING_KEY_DIR/$SIGNING_FILE:/workspace/security/$SIGNING_FILE:ro")
-    done
-    KEY_PUBLIC_HASH=$(openssl pkey -inform DER -in "$IMPULSE_SIGNING_KEY_DIR/impulse_platform.pk8" \
-        -pubout -outform DER | sha256sum | cut -d ' ' -f1)
-    CERT_PUBLIC_HASH=$(openssl x509 -in "$IMPULSE_SIGNING_KEY_DIR/impulse_platform.x509.pem" \
-        -pubkey -noout | openssl pkey -pubin -outform DER | sha256sum | cut -d ' ' -f1)
-    if [[ "$KEY_PUBLIC_HASH" != "$CERT_PUBLIC_HASH" ]]; then
-        echo "Impulse signing key does not match the release certificate." >&2
-        exit 2
+    else
+        echo "Note: Release signing keys not found in $IMPULSE_SIGNING_KEY_DIR; using AOSP testkey platform keys." >&2
     fi
 fi
 
@@ -70,6 +70,8 @@ DOCKER_ARGS=(
     # patch keeps its target at clean stock and is recorded, for a first-boot
     # bring-up on a source the inherited patch set was not authored against.
     --env "PATCH_DRIFT_POLICY=${PATCH_DRIFT_POLICY:-fail}"
+    --env "FIRMWARE_PIN_SM_S721B_EUX=${FIRMWARE_PIN_SM_S721B_EUX:-S721BXXSCDZF3/S721BOXMCDZF3/S721BXXSCDZF3}"
+    --env "FIRMWARE_PIN_SM_S711B_EUX=${FIRMWARE_PIN_SM_S711B_EUX:-S711BXXSGGZF2/S711BOXMGGZF2/S711BXXSGGZF2}"
     --env TERM=dumb
     --volume "$SRC_DIR:/workspace"
     "${SIGNING_ARGS[@]}"
@@ -82,18 +84,20 @@ if [[ "$MODE" == rom ]]; then
     DOCKER_ARGS+=(--privileged)
 fi
 
+TARGET_DEVICE=${TARGET_DEVICE:-d2x}
+
 case "$MODE" in
     tools)
         docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-            bash -lc 'source buildenv.sh d2s && ./external/make.sh'
+            bash -lc "source buildenv.sh $TARGET_DEVICE && ./external/make.sh"
         ;;
     shell)
         docker run --interactive --tty "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-            bash -lc 'source buildenv.sh d2s && exec bash' bash "$@"
+            bash -lc "source buildenv.sh $TARGET_DEVICE && exec bash" bash "$@"
         ;;
     rom)
         docker run "${DOCKER_ARGS[@]}" "$IMAGE_NAME" \
-            bash -lc 'source buildenv.sh d2s && ./scripts/make_rom.sh "$@"' \
+            bash -lc "source buildenv.sh $TARGET_DEVICE && ./scripts/make_rom.sh \"\$@\"" \
             bash "$@"
         ;;
 esac

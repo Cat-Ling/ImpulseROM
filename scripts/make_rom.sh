@@ -41,6 +41,8 @@ TARGET_FIRMWARE_PATH="$(cut -d "/" -f 1 -s <<< "$TARGET_FIRMWARE")_$(cut -d "/" 
 # device modules that must restore exact files from either extracted tree.
 export SOURCE_FIRMWARE_PATH TARGET_FIRMWARE_PATH
 if [[ "${TARGET_SINGLE_SYSTEM_IMAGE:-}" == "essi85" ]]; then
+    export FIRMWARE_PIN_SM_S721B_EUX="${FIRMWARE_PIN_SM_S721B_EUX:-S721BXXSCDZF3/S721BOXMCDZF3/S721BXXSCDZF3}"
+    export FIRMWARE_PIN_SM_S711B_EUX="${FIRMWARE_PIN_SM_S711B_EUX:-S711BXXSGGZF2/S711BOXMGGZF2/S711BXXSGGZF2}"
     # Same defaults as scripts/build_in_container.sh, the profile the d2s One UI
     # 8.5 audits were run against. Without them a native build re-signs every
     # Samsung APK and drops the scoped d2s fixes.

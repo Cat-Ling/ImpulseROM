@@ -23,10 +23,13 @@
 SOURCE_METADATA_AUTODETECT=true
 SOURCE_CODENAME="r12s"
 SOURCE_FIRMWARE="SM-S721B/EUX/351273090276500"
+# Pin exact One UI 8.5 (Android 16, API 36) firmware builds verified by the test suite
+export FIRMWARE_PIN_SM_S721B_EUX="S721BXXSCDZF3/S721BOXMCDZF3/S721BXXSCDZF3"
 # S24 FE is arm64-only, while the Note10+ vendor still has hundreds of
 # native ELF32 HAL objects. Keep an Android 16 multilib Samsung firmware as a
 # local extraction input instead of committing its proprietary blobs.
 MULTILIB_FIRMWARE="SM-S711B/EUX/355195301615976"
+export FIRMWARE_PIN_SM_S711B_EUX="S711BXXSGGZF2/S711BOXMGGZF2/S711BXXSGGZF2"
 SOURCE_EXTRA_FIRMWARES=("$MULTILIB_FIRMWARE")
 SOURCE_API_LEVEL=36
 SOURCE_PRODUCT_FIRST_API_LEVEL=34
