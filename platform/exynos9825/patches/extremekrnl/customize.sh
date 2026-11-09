@@ -35,9 +35,15 @@ REPLACE_KERNEL_BINARIES()
     else
         ZIP_LINK="$EXTREMEKRNL_REPO/download/debug/ExtremeKRNL-Nexus-${TARGET_CODENAME}.zip"
     fi
-    LOG "Downloading $(basename "$ZIP_LINK")"
-    curl --fail --location --silent --show-error --retry 5 \
-        --output "$TMP_DIR/krnl.zip" "$ZIP_LINK" || exit 1
+    local CACHED_ZIP="$OUT_DIR/cache/$(basename "$ZIP_LINK")"
+    if [ -f "$CACHED_ZIP" ]; then
+        LOG "Using cached $(basename "$ZIP_LINK")"
+        cp -f "$CACHED_ZIP" "$TMP_DIR/krnl.zip"
+    else
+        LOG "Downloading $(basename "$ZIP_LINK")"
+        curl --fail --location --silent --show-error --retry 5 \
+            --output "$TMP_DIR/krnl.zip" "$ZIP_LINK" || exit 1
+    fi
     if ! $DEBUG; then
         printf '%s  %s\n' "$ZIP_SHA256" "$TMP_DIR/krnl.zip" | \
             sha256sum --check --strict - || exit 1
@@ -60,8 +66,14 @@ ADD_MANAGER_APK_TO_PRELOAD()
 
     LOG "Adding KernelSU-Next.apk to preload apps"
     mkdir -p "$WORK_DIR/system/$(dirname "$APK_PATH")"
-    curl --fail --location --silent --show-error --retry 5 \
-        --output "$WORK_DIR/system/$APK_PATH" "$KERNELSU_MANAGER_APK" || exit 1
+    local CACHED_APK="$OUT_DIR/cache/$(basename "$KERNELSU_MANAGER_APK")"
+    if [ -f "$CACHED_APK" ]; then
+        LOG "Using cached $(basename "$KERNELSU_MANAGER_APK")"
+        cp -f "$CACHED_APK" "$WORK_DIR/system/$APK_PATH"
+    else
+        curl --fail --location --silent --show-error --retry 5 \
+            --output "$WORK_DIR/system/$APK_PATH" "$KERNELSU_MANAGER_APK" || exit 1
+    fi
     printf '%s  %s\n' "$KERNELSU_MANAGER_SHA256" "$WORK_DIR/system/$APK_PATH" | \
         sha256sum --check --strict - || exit 1
 
