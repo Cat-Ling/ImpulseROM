@@ -5,8 +5,8 @@ EXTREMEKRNL_REPO="https://github.com/Ocin4ever/ExtremeKernel/releases"
 # because it is the newest verified d2s release; do not change the kernel to
 # chase a userspace service failure without new kernel evidence.
 EXTREMEKRNL_VERSION="v2.0"
-KERNELSU_MANAGER_APK="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v1.0.9/KernelSU_Next_v1.0.9_12797-release.apk"
-KERNELSU_MANAGER_SHA256="0013c41c9aeda2699f8a8af840839eb495f89bce7264b5c8fa42152b4c8d9a1e"
+KERNELSU_MANAGER_APK="https://github.com/KernelSU-Next/KernelSU-Next/releases/download/v3.4.2/KernelSU_Next_v3.4.2_33355-release.apk"
+KERNELSU_MANAGER_SHA256="774a5511f7034a4930e881114e202319cbdc34c5aaaa5c7c6b6d2902364e4c58"
 
 REPLACE_KERNEL_BINARIES()
 {
