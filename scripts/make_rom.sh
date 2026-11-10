@@ -30,6 +30,7 @@ GITHUB_ACTIONS=${GITHUB_ACTIONS:-}
 # against the current source (only when PATCH_DRIFT_POLICY=skip). This file is
 # the rebase backlog for restoring those features after a stable boot.
 export PATCH_DRIFT_REPORT="$OUT_DIR/skipped_patches.tsv"
+export PATCH_DRIFT_POLICY="${PATCH_DRIFT_POLICY:-skip}"
 
 START_TIME="$(date +%s)"
 
