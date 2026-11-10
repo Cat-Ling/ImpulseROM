@@ -73,6 +73,15 @@ SMALI_PATCH()
 
     # Check if provided smali exists
     if [ ! -f "$FILE_PATH/$SMALI" ]; then
+        local REL_PATH="${SMALI#smali/}"
+        local MATCH
+        MATCH="$(find "$FILE_PATH" -type f -path "*/$REL_PATH" 2> /dev/null | head -n 1)"
+        if [ -n "$MATCH" ] && [ -f "$MATCH" ]; then
+            SMALI="${MATCH#$FILE_PATH/}"
+        fi
+    fi
+
+    if [ ! -f "$FILE_PATH/$SMALI" ]; then
         LOGE "Smali not found: \"/$PARTITION/$FILE/$SMALI\""
 
         local MATCHES
