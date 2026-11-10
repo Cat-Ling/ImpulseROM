@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ImpulseROM <noreply@localhost>
+Subject: [PATCH] Keep the Screen resolution selector
+
+The S24 FE build folds the multi-resolution check in ScreenResolutionFragment.onCreate()
+to an unconditional removePreference("screen_resolution_seekbar"), so the page opens
+empty. Keep the selector on QHD devices.
+---
+
+--- a/smali_classes5/com/samsung/android/settings/display/ScreenResolutionFragment.smali
++++ b/smali_classes5/com/samsung/android/settings/display/ScreenResolutionFragment.smali
+@@ -384,8 +384,6 @@
+ 
+     sget-object v1, Lcom/samsung/android/settings/Rune;->COMMON_CONFIG_PACKAGE_NAME_SMART_MANAGER:Ljava/lang/String;
+ 
+-    invoke-virtual {p0, p1}, Lcom/android/settings/SettingsPreferenceFragment;->removePreference(Ljava/lang/String;)Z
+-
+     new-instance p1, Landroid/graphics/Point;
+ 
+     invoke-direct {p1}, Landroid/graphics/Point;-><init>()V
