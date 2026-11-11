@@ -16,7 +16,7 @@ diff --git a/smali/o5/s0.smali b/smali/o5/s0.smali
  .method public static J(Landroid/content/Context;Ljava/lang/String;)V
 -    .locals 1
 -
--    if-eqz p0, :cond_0
+-    if-eqz p0, :cond_2e
 -
 -    new-instance v0, Landroid/app/AlertDialog$Builder;
 -
@@ -56,7 +56,7 @@ diff --git a/smali/o5/s0.smali b/smali/o5/s0.smali
 -
 -    return-void
 -
--    :cond_0
+-    :cond_2e
 -    sget-object p0, Lo5/s0;->a:Ljava/lang/String;
 -
 -    const-string p1, "showAlert - context is null"

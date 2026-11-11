@@ -10,8 +10,8 @@ must rebuild (four d2s hardware fixes plus Settings and SettingsProvider). Data-
 trusted.
 ---
  .../server/pm/InstallPackageHelper.smali      |  14 ++
- .../android/server/pm/ScanPackageUtils.smali  | 151 +++++++++++++++++-
- 2 files changed, 163 insertions(+), 2 deletions(-)
+ .../android/server/pm/ScanPackageUtils.smali  | 159 +++++++++++++++++-
+ 2 files changed, 171 insertions(+), 2 deletions(-)
 
 --- a/smali_classes2/com/android/server/pm/InstallPackageHelper.smali
 +++ b/smali_classes2/com/android/server/pm/InstallPackageHelper.smali
@@ -78,7 +78,7 @@ trusted.
      :cond_c
      invoke-interface {p0, v1}, Lcom/android/internal/pm/parsing/pkg/ParsedPackage;->setSignedWithPlatformKey(Z)Lcom/android/internal/pm/parsing/pkg/ParsedPackage;
 
-@@ -5003,3 +5014,153 @@
+@@ -5003,3 +5014,161 @@
      :goto_2
      return-void
  .end method
@@ -145,6 +145,14 @@ trusted.
 +    if-nez v0, :cond_true
 +
 +    const-string v0, "com.android.providers.settings"
++
++    invoke-virtual {v0, p0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
++
++    move-result v0
++
++    if-nez v0, :cond_true
++
++    const-string v0, "com.sec.android.sdhms"
 +
 +    invoke-virtual {v0, p0}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
 +
