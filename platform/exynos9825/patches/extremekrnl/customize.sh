@@ -23,9 +23,9 @@ REPLACE_KERNEL_BINARIES()
                 ZIP_SHA256="91309ca7b6bce0edd99734b798ef23faf1e0eb2bd34d3055917e39309894eaba"
                 ;;
             d2x)
-                # Pinned ExtremeKRNL v2.0 for d2x (OpenELA rc1, Android 16 / One UI 8.5)
+                # Pinned ExtremeKRNL v2.0 for d2x (OpenELA rc1, Android 16 / One UI 8.5 with KernelSU-Next)
                 ZIP_LINK="https://github.com/Cat-Ling/ExtremeKernel/releases/download/v2.0/ExtremeKRNL-Nexus-${TARGET_CODENAME}.zip"
-                ZIP_SHA256="3d1bc307c547c660158fc382dd3f70cbc33edc5990f1063a8ec83496b9f5a0e3"
+                ZIP_SHA256="8e666a21d591e0a98f98ae9a82cc2fdf4cd989e0b7f0e1c7fdca9eb0cb6ad91c"
                 ;;
             *)
                 LOGE "No pinned ExtremeKRNL checksum for $TARGET_CODENAME"
