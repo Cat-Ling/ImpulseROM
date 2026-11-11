@@ -675,7 +675,7 @@ index 11ff3e3..65a6fea 100644
 +.end method
 +
 +.method public static setDisplayMode(Ljava/lang/String;Landroid/view/Display;)V
-+    .locals 2
++    .locals 7
  
 -    invoke-static {v3}, Landroid/os/Debug;->getCallers(I)Ljava/lang/String;
 +    invoke-static {}, Landroid/app/ActivityThread;->currentApplication()Landroid/app/Application;
@@ -697,6 +697,26 @@ index 11ff3e3..65a6fea 100644
 -    throw p0
 +    :cond_0
 +    return-void
++
++    const/4 v0, 0x0
++
++    invoke-static {}, Landroid/view/WindowManagerGlobal;->getWindowManagerService()Landroid/view/IWindowManager;
++
++    move-result-object v1
++
++    invoke-interface {v1, v0}, Landroid/view/IWindowManager;->clearForcedDisplaySize(I)V
++
++    invoke-virtual {p1}, Landroid/view/Display;->getMode()Landroid/view/Display$Mode;
++
++    move-result-object v1
++
++    new-instance v1, Landroid/view/Display$Mode;
++
++    const/4 v2, 0x0
++
++    invoke-direct {v1, v0, v0, v2}, Landroid/view/Display$Mode;-><init>(IIF)V
++
++    invoke-virtual {p1, v1}, Landroid/view/Display;->setUserPreferredDisplayMode(Landroid/view/Display$Mode;)V
  .end method
  
 +

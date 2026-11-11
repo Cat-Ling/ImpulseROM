@@ -1,0 +1,4 @@
+logical_index	kind	item
+5	methods	Landroid/app/ActivityThread;->currentApplication()Landroid/app/Application;
+5	methods	Lcom/samsung/android/settings/display/SecDisplayUtils;->applyForcedDisplayDensity(III)V
+5	methods	Lcom/samsung/android/settings/display/SecDisplayUtils;->setSelectedScreenResolution(Landroid/content/Context;I)V
