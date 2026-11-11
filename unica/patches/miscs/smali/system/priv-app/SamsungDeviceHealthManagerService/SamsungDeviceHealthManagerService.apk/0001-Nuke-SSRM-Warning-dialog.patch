@@ -16,7 +16,7 @@ diff --git a/smali/o5/s0.smali b/smali/o5/s0.smali
  .method public static J(Landroid/content/Context;Ljava/lang/String;)V
 -    .locals 1
 -
--    if-eqz p0, :cond_2e
+-    if-eqz p0, :cond_0
 -
 -    new-instance v0, Landroid/app/AlertDialog$Builder;
 -
