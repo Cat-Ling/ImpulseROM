@@ -35,6 +35,11 @@ SET_PROP "vendor" "ro.surface_flinger.enable_frame_rate_override" "false"
 SET_PROP "vendor" "ro.surface_flinger.use_content_detection_for_refresh_rate" "false"
 LOG_STEP_OUT
 
+LOG_STEP_IN "- Enabling Vulkan"
+SET_PROP "vendor" "ro.hwui.use_vulkan" "true"
+SET_PROP "vendor" "debug.hwui.use_hint_manager" "true"
+LOG_STEP_OUT
+
 # For some reason we are missing 2 permissions here: android.hardware.security.model.compatible and android.software.controls
 # First one is related to encryption and second one to SmartThings Device Control
 LOG "- Patching vendor permissions"
