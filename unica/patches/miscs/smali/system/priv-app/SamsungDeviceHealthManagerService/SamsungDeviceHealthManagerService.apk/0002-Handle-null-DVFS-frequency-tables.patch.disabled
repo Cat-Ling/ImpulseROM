@@ -1,0 +1,31 @@
+From 7361b05d7af0aac22a1a486fc99840c33158382b Mon Sep 17 00:00:00 2001
+From: Cat-Ling <catling@noreply.github.com>
+Date: Tue, 10 Nov 2026 10:05:00 +0530
+Subject: [PATCH] [EXPERIMENTAL] Handle null DVFS frequency tables in k5/q4
+
+Note: Preserved as reference. Exynos 9825 without HyPer HAL resource manager
+returns null from SemDvfsManager.getSupportedFrequency().
+---
+ smali/k5/q4.smali | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/smali/k5/q4.smali b/smali/k5/q4.smali
+--- a/smali/k5/q4.smali
++++ b/smali/k5/q4.smali
+@@ -790,6 +790,15 @@
+ .method private w([I)[I
+     .locals 3
++    if-nez p1, :cond_not_null
++
++    const/4 v0, 0x0
++
++    new-array v0, v0, [I
++
++    return-object v0
++
++    :cond_not_null
+ 
+     const/4 p0, 0x0
+ 
+-- 
+2.46.1
